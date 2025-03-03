@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Settings - Nova Buzz</title>
+    <link rel="stylesheet" href="styles/main.css">
+    <link rel="stylesheet" href="styles/components.css">
+    <link rel="stylesheet" href="styles/settings.css">
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+    <!-- Primary Meta Tags -->
+    <meta name="title" content="Nova Buzz - Share Your Thoughts">
+    <meta name="description" content="Join the Nova Buzz community to share your thoughts and connect with others.">
+    <meta name="keywords" content="social media, community, posts, sharing, nova buzz">
+    <meta name="author" content="xxavvTechnologies">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://buzz.nova.xxavvgroup.com">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://buzz.nova.xxavvgroup.com">
+    <meta property="og:title" content="Nova Buzz - Share Your Thoughts">
+    <meta property="og:description" content="Join the Nova Buzz community to share your thoughts and connect with others.">
+    <meta property="og:image" content="https://buzz.nova.xxavvgroup.com/images/og-image.jpg">
+    <meta property="og:site_name" content="Nova Buzz">
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:site" content="@novabuzz">
+    <meta name="twitter:creator" content="@xxavvtech">
+    <meta name="twitter:title" content="Nova Buzz - Share Your Thoughts">
+    <meta name="twitter:description" content="Join the Nova Buzz community to share your thoughts and connect with others.">
+    <meta name="twitter:image" content="https://buzz.nova.xxavvgroup.com/images/twitter-card.jpg">
+
+    <!-- App Info -->
+    <meta name="application-name" content="Nova Buzz">
+    <meta name="apple-mobile-web-app-title" content="Nova Buzz">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#6c5ce7">
+    
+    <!-- Icons -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png">
+    <link rel="manifest" href="/manifest.json">
+</head>
+<body>
+    <nav class="top-nav glass">
+        <div class="nav-content">
+            <div class="logo">
+                <i class="ri-flashlight-line"></i>
+                Nova Buzz
+            </div>
+            <div class="nav-links glass-light">
+                <a href="index.html" id="homeLink" class="nav-link">
+                    <i class="ri-home-5-line"></i> Home
+                </a>
+                <a href="profile.html" id="profileLink" class="nav-link">
+                    <i class="ri-user-3-line"></i> Profile
+                </a>
+                <a href="settings.html" id="settingsLink" class="nav-link active">
+                    <i class="ri-settings-4-line"></i> Settings
+                </a>
+                <a href="#" id="logoutBtn" class="nav-link" style="display: none;">
+                    <i class="ri-logout-circle-line"></i> Logout
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <div class="settings-container glass">
+            <h1><i class="ri-settings-4-line"></i> Settings</h1>
+            
+            <div class="settings-section">
+                <h2>Account</h2>
+                <div class="setting-item">
+                    <label>Username <span class="required">*</span></label>
+                    <input type="text" id="username" class="settings-input" required>
+                    <small class="input-help">This is your unique identifier</small>
+                </div>
+                <div class="setting-item">
+                    <label>Display Name</label>
+                    <input type="text" id="displayName" class="settings-input">
+                    <small class="input-help">This is how your name appears to others</small>
+                </div>
+                <div class="setting-item">
+                    <label>Email Notifications</label>
+                    <div class="toggle-switch">
+                        <input type="checkbox" id="emailNotifs">
+                        <span class="slider"></span>
+                    </div>
+                </div>
+                <button id="saveAccountSettings" class="settings-btn">Save Changes</button>
+            </div>
+
+            <div class="settings-section">
+                <h2>Privacy</h2>
+                <div class="setting-item">
+                    <label>Show Profile to Public</label>
+                    <div class="toggle-switch">
+                        <input type="checkbox" id="publicProfile">
+                        <span class="slider"></span>
+                    </div>
+                </div>
+                <div class="setting-item">
+                    <label>Show Online Status</label>
+                    <div class="toggle-switch">
+                        <input type="checkbox" id="showOnline">
+                        <span class="slider"></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="settings-section danger-zone">
+                <h2>Danger Zone</h2>
+                <div class="setting-item">
+                    <button id="deactivateAccount" class="danger-btn">
+                        <i class="ri-error-warning-line"></i>
+                        Deactivate Account
+                    </button>
+                </div>
+                <div class="setting-item">
+                    <button id="deleteAccount" class="danger-btn">
+                        <i class="ri-delete-bin-line"></i>
+                        Delete Account
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script type="module" src="js/config.js"></script>
+    <script type="module" src="js/auth.js"></script>
+    <script type="module" src="js/settings.js"></script>
+</body>
+</html>

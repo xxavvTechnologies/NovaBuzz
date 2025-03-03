@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /settings
+Disallow: /api/
+
+Sitemap: https://buzz.nova.xxavvgroup.com/sitemap.xml

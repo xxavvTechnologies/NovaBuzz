@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Profile - Nova Buzz</title>
+    <link rel="stylesheet" href="styles/main.css">
+    <link rel="stylesheet" href="styles/components.css">
+    <link rel="stylesheet" href="styles/animations.css">
+    <link rel="stylesheet" href="styles/mobile.css">
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles/admin.css">
+
+    <!-- Primary Meta Tags -->
+    <meta name="title" content="Nova Buzz - Share Your Thoughts">
+    <meta name="description" content="Join the Nova Buzz community to share your thoughts and connect with others.">
+    <meta name="keywords" content="social media, community, posts, sharing, nova buzz">
+    <meta name="author" content="xxavvTechnologies">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://buzz.nova.xxavvgroup.com">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://buzz.nova.xxavvgroup.com">
+    <meta property="og:title" content="Nova Buzz - Share Your Thoughts">
+    <meta property="og:description" content="Join the Nova Buzz community to share your thoughts and connect with others.">
+    <meta property="og:image" content="https://buzz.nova.xxavvgroup.com/images/og-image.jpg">
+    <meta property="og:site_name" content="Nova Buzz">
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:site" content="@novabuzz">
+    <meta name="twitter:creator" content="@xxavvtech">
+    <meta name="twitter:title" content="Nova Buzz - Share Your Thoughts">
+    <meta name="twitter:description" content="Join the Nova Buzz community to share your thoughts and connect with others.">
+    <meta name="twitter:image" content="https://buzz.nova.xxavvgroup.com/images/twitter-card.jpg">
+
+    <!-- App Info -->
+    <meta name="application-name" content="Nova Buzz">
+    <meta name="apple-mobile-web-app-title" content="Nova Buzz">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#6c5ce7">
+    
+    <!-- Icons -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png">
+    <link rel="manifest" href="/manifest.json">
+</head>
+<body>
+    <nav class="top-nav glass">
+        <div class="nav-content">
+            <div class="logo">
+                <i class="ri-flashlight-line"></i>
+                Nova Buzz
+            </div>
+            <div class="nav-links glass-light">
+                <a href="index.html" id="homeLink" class="nav-link">
+                    <i class="ri-home-5-line"></i> Home
+                </a>
+                <a href="profile.html" id="profileLink" class="nav-link active">
+                    <i class="ri-user-3-line"></i> Profile
+                </a>
+                <a href="settings.html" id="settingsLink" class="nav-link">
+                    <i class="ri-settings-4-line"></i> Settings
+                </a>
+                <a href="#" id="loginBtn" class="nav-link">
+                    <i class="ri-login-circle-line"></i> Login
+                </a>
+                <a href="#" id="signupBtn" class="nav-link">
+                    <i class="ri-user-add-line"></i> Sign Up
+                </a>
+                <a href="#" id="logoutBtn" class="nav-link" style="display: none;">
+                    <i class="ri-logout-circle-line"></i> Logout
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <div class="profile-container">
+            <div class="profile-header glass">
+                <div class="profile-avatar">
+                    <i class="ri-user-fill"></i>
+                </div>
+                <div class="profile-info">
+                    <h1 id="profileUsername">Loading...</h1>
+                    <p id="profileJoinDate">Member since: Loading...</p>
+                </div>
+                <button id="editProfileBtn" class="edit-profile-btn">
+                    <i class="ri-edit-line"></i> Edit Profile
+                </button>
+            </div>
+
+            <div class="profile-stats glass">
+                <div class="stat-item">
+                    <span id="postsCount">0</span>
+                    <label>Posts</label>
+                </div>
+                <div class="stat-item">
+                    <span id="likesCount">0</span>
+                    <label>Likes</label>
+                </div>
+            </div>
+
+            <div class="profile-posts">
+                <h2>Your Posts</h2>
+                <div id="userPosts" class="posts-list">
+                    <!-- User posts will be injected here -->
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer glass">
+        <div class="footer-content">
+            <div class="footer-section">
+                <h3>Nova Buzz</h3>
+                <p>Share your thoughts with the world</p>
+            </div>
+            <div class="footer-section">
+                <h4>Quick Links</h4>
+                <a href="#">About</a>
+                <a href="#">Privacy</a>
+                <a href="#">Terms</a>
+            </div>
+            <div class="footer-section">
+                <h4>Connect</h4>
+                <div class="social-links">
+                    <a href="#" class="social-icon"><i class="ri-twitter-line"></i></a>
+                    <a href="#" class="social-icon"><i class="ri-discord-line"></i></a>
+                    <a href="#" class="social-icon"><i class="ri-mail-line"></i></a>
+                </div>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2025 Nova Buzz. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script type="module" src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js"></script>
+    <script type="module" src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js"></script>
+    <script type="module" src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js"></script>
+    <script type="module" src="js/config.js"></script>
+    <script type="module" src="js/auth.js"></script>
+    <script type="module" src="js/app.js"></script>
+    <script type="module" src="js/profile.js"></script>
+</body>
+</html>
