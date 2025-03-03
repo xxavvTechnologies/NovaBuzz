@@ -181,6 +181,42 @@ export class Auth {
         }
     }
 
+    async login(email, password) {
+        try {
+            const userCredential = await signInWithEmailAndPassword(auth, email, password);
+            const userDoc = await getDoc(doc(db, 'users', userCredential.user.uid));
+            
+            // Check if user is banned
+            if (userDoc.exists() && userDoc.data().isBanned) {
+                await signOut(auth);
+                throw new Error('This account has been banned. Please contact support.');
+            }
+
+            // Remove any existing auth modals
+            document.querySelectorAll('.modal-overlay').forEach(modal => modal.remove());
+            
+        } catch (error) {
+            console.error('Login error:', error);
+            let errorMessage = 'Failed to login. Please try again.';
+            
+            switch (error.code) {
+                case 'auth/user-not-found':
+                case 'auth/wrong-password':
+                    errorMessage = 'Invalid email or password';
+                    break;
+                case 'auth/too-many-requests':
+                    errorMessage = 'Too many failed attempts. Please try again later.';
+                    break;
+                case 'auth/user-disabled':
+                    errorMessage = 'This account has been disabled.';
+                    break;
+            }
+            
+            alert(errorMessage);
+            throw error;
+        }
+    }
+
     showUsernamePrompt() {
         const overlay = document.createElement('div');
         overlay.className = 'modal-overlay';
