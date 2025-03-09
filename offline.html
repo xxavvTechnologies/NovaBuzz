@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Offline - Nova Buzz</title>
+    <link rel="stylesheet" href="styles/main.css">
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
+    <style>
+        .offline-container {
+            text-align: center;
+            padding: 2rem;
+            margin-top: 20vh;
+        }
+        .offline-icon {
+            font-size: 4rem;
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+        }
+        .retry-btn {
+            margin-top: 1rem;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            background: var(--primary-color);
+            color: white;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="offline-container">
+        <i class="ri-wifi-off-line offline-icon"></i>
+        <h1>You're offline</h1>
+        <p>Please check your internet connection</p>
+        <button class="retry-btn" onclick="window.location.reload()">
+            <i class="ri-refresh-line"></i> Retry
+        </button>
+    </div>
+</body>
+</html>

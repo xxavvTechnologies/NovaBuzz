@@ -24,9 +24,33 @@ export class AdminPanel {
                 const userDoc = await getDoc(doc(db, 'users', user.uid));
                 const isAdmin = userDoc.data()?.isAdmin;
                 if (isAdmin) {
-                    this.showAdminControls();
+                    // Wait for DOM to be ready
+                    this.waitForElement('.profile-container').then(() => {
+                        this.showAdminControls();
+                    });
                 }
             }
+        });
+    }
+
+    // Helper method to wait for element
+    waitForElement(selector) {
+        return new Promise(resolve => {
+            if (document.querySelector(selector)) {
+                return resolve(document.querySelector(selector));
+            }
+
+            const observer = new MutationObserver(() => {
+                if (document.querySelector(selector)) {
+                    observer.disconnect();
+                    resolve(document.querySelector(selector));
+                }
+            });
+
+            observer.observe(document.body, {
+                childList: true,
+                subtree: true
+            });
         });
     }
 
@@ -34,6 +58,8 @@ export class AdminPanel {
         // Add admin controls to profile pages
         if (window.location.pathname.includes('profile.html')) {
             const profileContainer = document.querySelector('.profile-container');
+            if (!profileContainer) return; // Guard clause
+
             const adminSection = document.createElement('div');
             adminSection.className = 'admin-controls glass';
             adminSection.innerHTML = `
@@ -64,6 +90,8 @@ export class AdminPanel {
         // Add admin controls to posts
         document.querySelectorAll('.post').forEach(post => {
             const actions = post.querySelector('.post-actions');
+            if (!actions) return;
+
             const adminBtn = document.createElement('button');
             adminBtn.className = 'admin-post-btn';
             adminBtn.innerHTML = '<i class="ri-shield-keyhole-line"></i> Admin';

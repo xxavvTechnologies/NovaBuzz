@@ -1,10 +1,13 @@
 import { auth, db } from './config.js';
 import { doc, getDoc, updateDoc, deleteDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js';
 
-class Settings {
+export class Settings {
     constructor() {
+        this.preferences = JSON.parse(localStorage.getItem('displayPreferences') || '{}');
         this.setupAuthListener();
         this.setupEventListeners();
+        this.setupDisplayPreferences();
+        this.applyPreferences();
     }
 
     setupAuthListener() {
@@ -116,6 +119,76 @@ class Settings {
             console.error('Error deleting account:', error);
             alert('Error deleting account');
         }
+    }
+
+    setupDisplayPreferences() {
+        const container = document.querySelector('.settings-container');
+        if (!container) return;
+
+        const displaySection = document.createElement('div');
+        displaySection.className = 'settings-section';
+        displaySection.innerHTML = `
+            <h2>Display Preferences</h2>
+            <div class="setting-item">
+                <label>Post Layout</label>
+                <select id="postLayout" class="settings-input">
+                    <option value="compact">Compact</option>
+                    <option value="comfortable">Comfortable</option>
+                    <option value="relaxed">Relaxed</option>
+                </select>
+            </div>
+            <div class="setting-item">
+                <label>Text Size</label>
+                <select id="textSize" class="settings-input">
+                    <option value="small">Small</option>
+                    <option value="medium">Medium</option>
+                    <option value="large">Large</option>
+                </select>
+            </div>
+            <div class="setting-item">
+                <label>Reduce Motion</label>
+                <div class="toggle-switch">
+                    <input type="checkbox" id="reduceMotion">
+                    <span class="slider"></span>
+                </div>
+            </div>
+            <button id="saveDisplaySettings" class="settings-btn">Save Display Settings</button>
+        `;
+
+        container.insertBefore(displaySection, container.querySelector('.danger-zone'));
+
+        this.loadPreferences();
+        this.setupPreferencesListeners();
+    }
+
+    loadPreferences() {
+        const { postLayout, textSize, reduceMotion } = this.preferences;
+        
+        if (postLayout) document.getElementById('postLayout').value = postLayout;
+        if (textSize) document.getElementById('textSize').value = textSize;
+        if (reduceMotion) document.getElementById('reduceMotion').checked = reduceMotion;
+    }
+
+    setupPreferencesListeners() {
+        document.getElementById('saveDisplaySettings')?.addEventListener('click', () => {
+            this.preferences = {
+                postLayout: document.getElementById('postLayout').value,
+                textSize: document.getElementById('textSize').value,
+                reduceMotion: document.getElementById('reduceMotion').checked
+            };
+
+            localStorage.setItem('displayPreferences', JSON.stringify(this.preferences));
+            this.applyPreferences();
+            alert('Display preferences saved!');
+        });
+    }
+
+    applyPreferences() {
+        const { postLayout, textSize, reduceMotion } = this.preferences;
+
+        document.documentElement.dataset.postLayout = postLayout || 'comfortable';
+        document.documentElement.dataset.textSize = textSize || 'medium';
+        document.documentElement.dataset.reduceMotion = reduceMotion ? 'true' : 'false';
     }
 }
 

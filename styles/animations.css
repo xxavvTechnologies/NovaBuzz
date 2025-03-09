@@ -1,5 +1,5 @@
 @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(20px); }
+    from { opacity: 0; transform: translateY(10px); }
     to { opacity: 1; transform: translateY(0); }
 }
 
@@ -14,8 +14,15 @@
     100% { transform: scale(1); }
 }
 
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
 .post {
-    animation: fadeIn 0.5s ease-out;
+    animation: fadeIn 0.3s ease-out;
+    animation-fill-mode: backwards;
+    will-change: transform;
+    transform: translateZ(0);
 }
 
 .nav-link {
@@ -55,9 +62,16 @@
     backdrop-filter: blur(12px);
 }
 
+.search-input, .hashtag-item {
+    will-change: transform;
+    transform: translateZ(0);
+}
+
 @media (prefers-reduced-motion: reduce) {
     * {
-        animation: none !important;
-        transition: none !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
     }
 }

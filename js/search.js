@@ -12,37 +12,22 @@ import {
 
 export class SearchWidget {
     constructor() {
-        this.setupSearchSidebar();
+        // Only initialize if we're on the search page
+        if (!window.location.pathname.includes('search.html')) return;
+        
+        this.searchInput = document.querySelector('.search-input');
+        this.searchResults = document.querySelector('.search-results');
+        this.hashtagList = document.querySelector('.hashtag-list');
+        
         this.setupSearchListeners();
         this.loadTrendingHashtags();
-        this.debounceTimer = null;
-    }
+        
+        // Focus search input on page load
+        this.searchInput?.focus();
 
-    setupSearchSidebar() {
-        const sidebar = document.createElement('div');
-        sidebar.className = 'search-sidebar';
-        sidebar.innerHTML = `
-            <div class="search-box glass">
-                <div class="search-input-wrapper">
-                    <i class="ri-search-line"></i>
-                    <input type="text" class="search-input" placeholder="Search users and posts...">
-                </div>
-                <div class="search-results"></div>
-            </div>
-            <div class="trending-hashtags">
-                <h3><i class="ri-hashtag"></i> Trending Topics</h3>
-                <div class="hashtag-list">
-                    <div class="loader">Loading trending topics...</div>
-                </div>
-            </div>
-        `;
-
-        const mainContent = document.querySelector('.main-content');
-        mainContent.appendChild(sidebar);
-
-        this.searchInput = sidebar.querySelector('.search-input');
-        this.searchResults = sidebar.querySelector('.search-results');
-        this.hashtagList = sidebar.querySelector('.hashtag-list');
+        this.searchHistory = JSON.parse(localStorage.getItem('searchHistory') || '[]');
+        this.setupClearHistoryButton();
+        this.displaySearchHistory();
     }
 
     setupSearchListeners() {
@@ -59,31 +44,109 @@ export class SearchWidget {
         });
     }
 
+    setupClearHistoryButton() {
+        const clearBtn = document.querySelector('.clear-history-btn');
+        if (clearBtn) {
+            clearBtn.addEventListener('click', () => {
+                this.clearSearchHistory();
+            });
+        }
+    }
+
     async performSearch(query) {
         this.searchResults.innerHTML = '<div class="loader">Searching...</div>';
         
         try {
-            // Search users
-            const usersQuery = query.startsWith('@') ? query.substring(1) : query;
-            const userResults = await this.searchUsers(usersQuery);
+            let userResults = [];
+            let postResults = [];
+            let hashtagResults = [];
+            
+            if (query.startsWith('#')) {
+                // Search for posts with specific hashtag
+                const hashtag = query.substring(1).toLowerCase();
+                postResults = await this.searchPostsByHashtag(hashtag);
+            } else if (query.startsWith('@')) {
+                // Search for users
+                userResults = await this.searchUsers(query.substring(1));
+            } else {
+                // Combined search
+                [userResults, postResults] = await Promise.all([
+                    this.searchUsers(query),
+                    this.searchPosts(query)
+                ]);
+            }
 
-            // Search posts
-            const postResults = await this.searchPosts(query);
-
-            // Combine and display results
             this.displaySearchResults([...userResults, ...postResults]);
         } catch (error) {
             console.error('Search error:', error);
             this.searchResults.innerHTML = 'Error performing search';
         }
+
+        // Add to search history
+        this.addToSearchHistory(query);
+    }
+
+    addToSearchHistory(query) {
+        if (!query) return;
+        
+        this.searchHistory = this.searchHistory.filter(item => item.query !== query);
+        this.searchHistory.unshift({
+            query,
+            timestamp: Date.now()
+        });
+
+        // Keep only last 10 searches
+        this.searchHistory = this.searchHistory.slice(0, 10);
+        localStorage.setItem('searchHistory', JSON.stringify(this.searchHistory));
+        this.displaySearchHistory();
+    }
+
+    displaySearchHistory() {
+        const recentList = document.querySelector('.recent-list');
+        if (!recentList) return;
+
+        recentList.innerHTML = this.searchHistory.length ? 
+            this.searchHistory.map(item => `
+                <div class="recent-search-item" data-query="${item.query}">
+                    <i class="ri-time-line"></i>
+                    <span>${item.query}</span>
+                    <i class="ri-close-line remove-search"></i>
+                </div>
+            `).join('') : 
+            '<div class="no-history">No recent searches</div>';
+
+        // Add click handlers
+        recentList.querySelectorAll('.recent-search-item').forEach(item => {
+            item.addEventListener('click', (e) => {
+                if (e.target.classList.contains('remove-search')) {
+                    this.removeFromHistory(item.dataset.query);
+                } else {
+                    this.searchInput.value = item.dataset.query;
+                    this.performSearch(item.dataset.query);
+                }
+            });
+        });
+    }
+
+    clearSearchHistory() {
+        this.searchHistory = [];
+        localStorage.setItem('searchHistory', '[]');
+        this.displaySearchHistory();
+    }
+
+    removeFromHistory(query) {
+        this.searchHistory = this.searchHistory.filter(item => item.query !== query);
+        localStorage.setItem('searchHistory', JSON.stringify(this.searchHistory));
+        this.displaySearchHistory();
     }
 
     async searchUsers(query) {
         const usersRef = collection(db, 'users');
-        const q = fbQuery(usersRef,  // Use fbQuery instead of query
-            where('usernameLower', '>=', query.toLowerCase()),
-            where('usernameLower', '<=', query.toLowerCase() + '\uf8ff'),
-            limit(5)
+        const queryLower = query.toLowerCase();
+        const q = fbQuery(usersRef,
+            where('usernameLower', '>=', queryLower),
+            where('usernameLower', '<=', queryLower + '\uf8ff'),
+            limit(10)
         );
 
         const snapshot = await getDocs(q);
@@ -96,10 +159,29 @@ export class SearchWidget {
 
     async searchPosts(query) {
         const postsRef = collection(db, 'posts');
-        const q = fbQuery(postsRef,  // Use fbQuery instead of query
-            where('content', '>=', query),
-            where('content', '<=', query + '\uf8ff'),
-            limit(5)
+        const queryLower = query.toLowerCase();
+        
+        // Search in content
+        const contentQuery = fbQuery(postsRef,
+            where('contentLower', '>=', queryLower),
+            where('contentLower', '<=', queryLower + '\uf8ff'),
+            limit(10)
+        );
+
+        const snapshot = await getDocs(contentQuery);
+        return snapshot.docs.map(doc => ({
+            type: 'post',
+            id: doc.id,
+            data: doc.data()
+        }));
+    }
+
+    async searchPostsByHashtag(hashtag) {
+        const postsRef = collection(db, 'posts');
+        const q = fbQuery(postsRef,
+            where('hashtags', 'array-contains', hashtag.toLowerCase()),
+            orderBy('createdAt', 'desc'),
+            limit(20)
         );
 
         const snapshot = await getDocs(q);
@@ -178,4 +260,29 @@ export class SearchWidget {
             this.hashtagList.innerHTML = 'Error loading trending topics';
         }
     }
+
+    observeSearchInput() {
+        const options = {
+            root: null,
+            rootMargin: '0px',
+            threshold: 0
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    this.searchInput?.focus();
+                }
+            });
+        }, options);
+
+        if (this.searchInput) {
+            observer.observe(this.searchInput);
+        }
+    }
+}
+
+// Initialize only if we're on the search page
+if (window.location.pathname.includes('search.html')) {
+    new SearchWidget();
 }

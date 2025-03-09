@@ -1,8 +1,28 @@
 import { auth, db } from './config.js';
 import { Auth } from './auth.js';
-import { collection, addDoc, doc, getDoc, updateDoc, serverTimestamp, query, orderBy, onSnapshot, increment, deleteDoc, limit, startAfter, getDocs, setDoc, documentId } from 'https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js';
-import { formatPostDate, checkContent, extractHashtags, updateHashtagCount } from './utils.js';
+import { 
+    collection, 
+    addDoc,
+    doc, 
+    getDoc, 
+    updateDoc, 
+    serverTimestamp, 
+    query, 
+    orderBy, 
+    onSnapshot, 
+    increment as fbIncrement, // Change increment to fbIncrement to avoid confusion
+    deleteDoc,
+    limit,
+    startAfter,
+    getDocs,
+    setDoc,
+    documentId,
+    arrayRemove,
+    arrayUnion
+} from 'https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js';
+import { formatPostDate, checkContent, extractHashtags, updateHashtagCount, getCurrentUserData, textToHtml } from './utils.js';
 import { SearchWidget } from './search.js';
+import { ThemeManager } from './themeManager.js';
 
 class App {
     constructor() {
@@ -13,6 +33,8 @@ class App {
         this.allPostsLoaded = false;
         this.postCache = new Map(); // Add cache for posts
         this.debounceTimer = null;
+        this.drafts = JSON.parse(localStorage.getItem('postDrafts') || '[]');
+        this.setupKeyboardShortcuts();
         
         // Only initialize feed elements if we're on the home page
         if (window.location.pathname.endsWith('index.html') || window.location.pathname === '/') {
@@ -22,6 +44,32 @@ class App {
 
         // Initialize search
         new SearchWidget();
+
+        // Initialize theme manager
+        new ThemeManager();
+
+        this.setupMobileNav();
+    }
+
+    setupKeyboardShortcuts() {
+        document.addEventListener('keydown', (e) => {
+            // Ctrl/Cmd + / to focus search
+            if ((e.ctrlKey || e.metaKey) && e.key === '/') {
+                e.preventDefault();
+                document.querySelector('.search-input')?.focus();
+            }
+
+            // Ctrl/Cmd + P to create new post
+            if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
+                e.preventDefault();
+                this.showPostCreationModal();
+            }
+
+            // Esc to close modals
+            if (e.key === 'Escape') {
+                document.querySelector('.modal-overlay')?.remove();
+            }
+        });
     }
 
     setupWelcomeBanner() {
@@ -108,7 +156,9 @@ class App {
         
         const modal = document.createElement('div');
         modal.className = 'create-post-modal';
-        modal.innerHTML = `
+
+        // Define modal content first
+        let modalContent = `
             <div class="modal-header">
                 <h3 class="modal-title">Create Post</h3>
                 <button class="close-btn">
@@ -124,75 +174,154 @@ class App {
             </div>
         `;
 
-        overlay.appendChild(modal);
-        document.body.appendChild(overlay);
-
-        // Setup character counter and other functionality
-        const postContent = modal.querySelector('#modalPostContent');
-        const submitPost = modal.querySelector('#modalSubmitPost');
-        const counterDiv = modal.querySelector('.character-counter');
-
-        // Setup character counter
-        const updateCharCount = async () => {
+        // Add formatting help text after checking user verification status
+        const setupModal = async () => {
             const userDoc = await getDoc(doc(db, 'users', user.uid));
             const isVerified = userDoc.data()?.isVerified;
-            const MAX_CHARS = isVerified ? 2000 : 250;
-            const remaining = MAX_CHARS - postContent.value.length;
             
-            counterDiv.textContent = `${remaining} characters remaining${isVerified ? ' (Verified User)' : ''}`;
-            counterDiv.className = `character-counter ${remaining < 0 ? 'error' : ''}`;
-            submitPost.disabled = remaining < 0;
+            if (isVerified) {
+                modalContent += `
+                    <div class="formatting-help">
+                        <p>Formatting options:</p>
+                        <ul>
+                            <li><code>**bold**</code> for <strong>bold</strong></li>
+                            <li><code>*italic*</code> for <em>italic</em></li>
+                            <li><code>__underline__</code> for <u>underline</u></li>
+                            <li><code>~~strike~~</code> for <s>strike</s></li>
+                            <li><code>\`code\`</code> for <code>code</code></li>
+                        </ul>
+                    </div>`;
+            }
+
+            modal.innerHTML = modalContent;
+            overlay.appendChild(modal);
+            document.body.appendChild(overlay);
+
+            // Setup rest of modal functionality
+            const postContent = modal.querySelector('#modalPostContent');
+            const submitPost = modal.querySelector('#modalSubmitPost');
+            const counterDiv = modal.querySelector('.character-counter');
+
+            // Setup character counter
+            const updateCharCount = async () => {
+                const remaining = isVerified ? 2000 - postContent.value.length : 250 - postContent.value.length;
+                counterDiv.textContent = `${remaining} characters remaining${isVerified ? ' (Verified User)' : ''}`;
+                counterDiv.className = `character-counter ${remaining < 0 ? 'error' : ''}`;
+                submitPost.disabled = remaining < 0;
+            };
+
+            postContent.addEventListener('input', updateCharCount);
+            updateCharCount();
+
+            // Close modal handlers
+            const closeModal = () => overlay.remove();
+            overlay.addEventListener('click', (e) => {
+                if (e.target === overlay) closeModal();
+            });
+            modal.querySelector('.close-btn').addEventListener('click', closeModal);
+
+            // Add drafts dropdown if drafts exist
+            if (this.drafts.length > 0) {
+                const draftsSelect = document.createElement('select');
+                draftsSelect.className = 'drafts-select';
+                draftsSelect.innerHTML = `
+                    <option value="">Load from drafts...</option>
+                    ${this.drafts.map((draft, i) => `
+                        <option value="${i}">
+                            ${draft.content.substring(0, 30)}...
+                            (${new Date(draft.timestamp).toLocaleDateString()})
+                        </option>
+                    `).join('')}
+                `;
+
+                modal.querySelector('.post-form').insertBefore(
+                    draftsSelect,
+                    modal.querySelector('textarea')
+                );
+
+                draftsSelect.addEventListener('change', () => {
+                    if (draftsSelect.value !== '') {
+                        const draft = this.drafts[draftsSelect.value];
+                        postContent.value = draft.content;
+                        updateCharCount();
+                    }
+                });
+            }
+
+            // Add save as draft button
+            const saveAsDraft = document.createElement('button');
+            saveAsDraft.className = 'form-button secondary';
+            saveAsDraft.innerHTML = '<i class="ri-draft-line"></i> Save as Draft';
+            
+            modal.querySelector('.post-form').appendChild(saveAsDraft);
+
+            saveAsDraft.addEventListener('click', () => {
+                const content = postContent.value.trim();
+                if (!content) return;
+
+                this.drafts.unshift({
+                    content,
+                    timestamp: Date.now()
+                });
+
+                // Keep only last 5 drafts
+                this.drafts = this.drafts.slice(0, 5);
+                localStorage.setItem('postDrafts', JSON.stringify(this.drafts));
+                
+                alert('Draft saved!');
+            });
+
+            // Submit handler
+            submitPost.addEventListener('click', async () => {
+                const content = postContent.value.trim();
+                if (!content) return;
+
+                try {
+                    const userDoc = await getDoc(doc(db, 'users', user.uid));
+                    const userData = userDoc.data();
+
+                    // Extract hashtags before creating post
+                    const hashtags = extractHashtags(content);
+
+                    // Create post with hashtags and lowercase content
+                    const postData = {
+                        content: content, // Store raw content
+                        contentLower: content.toLowerCase(), // Add lowercase content for better search
+                        userId: user.uid,
+                        username: userData.username,
+                        profilePicUrl: userData.profilePicUrl || null,
+                        isVerified: userData.isVerified || false,
+                        createdAt: serverTimestamp(),
+                        likes: 0,
+                        truncated: content.length > 150,
+                        hashtags: hashtags.map(tag => tag.toLowerCase()) // Ensure hashtags are lowercase
+                    };
+
+                    const postRef = await addDoc(collection(db, 'posts'), postData);
+
+                    // Update hashtag counts
+                    await Promise.all(hashtags.map(tag => updateHashtagCount(db, tag)));
+
+                    closeModal();
+                } catch (error) {
+                    console.error('Error creating post:', error);
+                    alert('Error creating post: ' + error.message);
+                }
+            });
+            
+            // Focus textarea
+            postContent.focus();
+
+            const isMobile = window.innerWidth <= 768;
+            
+            if (isMobile) {
+                modal.className = 'create-post-modal mobile';
+                modal.style.height = '100%';
+                modal.style.width = '100%';
+            }
         };
 
-        postContent.addEventListener('input', updateCharCount);
-        updateCharCount();
-
-        // Close modal handlers
-        const closeModal = () => overlay.remove();
-        overlay.addEventListener('click', (e) => {
-            if (e.target === overlay) closeModal();
-        });
-        modal.querySelector('.close-btn').addEventListener('click', closeModal);
-
-        // Submit handler
-        submitPost.addEventListener('click', async () => {
-            const content = postContent.value.trim();
-            if (!content) return;
-
-            try {
-                const userDoc = await getDoc(doc(db, 'users', user.uid));
-                const userData = userDoc.data();
-
-                // Extract hashtags before creating post
-                const hashtags = extractHashtags(content);
-
-                // Create post with hashtags
-                const postData = {
-                    content,
-                    userId: user.uid,
-                    username: userData.username,
-                    profilePicUrl: userData.profilePicUrl || null,
-                    isVerified: userData.isVerified || false,
-                    createdAt: serverTimestamp(),
-                    likes: 0,
-                    truncated: content.length > 150,
-                    hashtags: hashtags // Add hashtags to post
-                };
-
-                const postRef = await addDoc(collection(db, 'posts'), postData);
-
-                // Update hashtag counts
-                await Promise.all(hashtags.map(tag => updateHashtagCount(db, tag)));
-
-                closeModal();
-            } catch (error) {
-                console.error('Error creating post:', error);
-                alert('Error creating post: ' + error.message);
-            }
-        });
-
-        // Focus textarea
-        postContent.focus();
+        setupModal();
     }
 
     showLoadingState() {
@@ -221,23 +350,37 @@ class App {
             const userId = auth.currentUser?.uid;
             const likedPosts = userId ? await this.getUserLikedPosts(userId) : new Set();
             
-            requestAnimationFrame(() => {
+            // Process changes in batches
+            const processChanges = async () => {
                 const fragment = document.createDocumentFragment();
                 
-                snapshot.docChanges().forEach(change => {
+                for (const change of snapshot.docChanges()) {
                     if (change.type === 'added' && !this.postCache.has(change.doc.id)) {
                         const postData = change.doc.data();
                         postData.hasLiked = likedPosts.has(change.doc.id);
-                        const postElement = this.createPostElement(postData, change.doc.id);
-                        this.postCache.set(change.doc.id, postElement);
-                        fragment.insertBefore(postElement, fragment.firstChild);
+                        const postElement = await this.createPostElement(postData, change.doc.id);
+                        if (postElement) {
+                            this.postCache.set(change.doc.id, postElement);
+                            fragment.insertBefore(postElement, fragment.firstChild);
+                        }
                     }
-                });
+                }
 
-                if (this.postsContainer.firstChild) {
-                    this.postsContainer.insertBefore(fragment, this.postsContainer.firstChild);
-                } else {
-                    this.postsContainer.appendChild(fragment);
+                if (fragment.hasChildNodes()) {
+                    if (this.postsContainer.firstChild) {
+                        this.postsContainer.insertBefore(fragment, this.postsContainer.firstChild);
+                    } else {
+                        this.postsContainer.appendChild(fragment);
+                    }
+                }
+            };
+
+            // Use requestAnimationFrame to handle UI updates
+            requestAnimationFrame(async () => {
+                try {
+                    await processChanges();
+                } catch (error) {
+                    console.error('Error processing post changes:', error);
                 }
             });
         });
@@ -412,7 +555,8 @@ class App {
 
             // Create post with hashtags
             const postData = {
-                content,
+                content: content, // Store raw content
+                contentLower: content.toLowerCase(),
                 userId: user.uid,
                 username: userData.username,
                 profilePicUrl: userData.profilePicUrl || null,
@@ -453,8 +597,8 @@ class App {
             : 'Just now';
 
         const displayContent = post.truncated ? 
-            post.content.substring(0, 150) + '... ' : 
-            post.content;
+            textToHtml(post.content.substring(0, 150), post.isVerified) + '... ' : 
+            textToHtml(post.content, post.isVerified);
 
         const canModify = this.canModifyPost(post);
 
@@ -568,31 +712,45 @@ class App {
         this.postsContainer.insertBefore(postElement, this.postsContainer.firstChild);
     }
 
-    createPostElement(post, postId) {
+    async createPostElement(post, postId) {
         const postElement = document.createElement('div');
         postElement.className = 'post';
         postElement.setAttribute('data-post-id', postId);
         
+        // Get current user data to ensure up-to-date information
+        const currentUserData = await getCurrentUserData(db, post.userId);
+        const username = currentUserData?.username || post.username;
+        const displayName = currentUserData?.displayName || username;
+        const profilePicUrl = currentUserData?.profilePicUrl || post.profilePicUrl;
+        const isVerified = currentUserData?.isVerified || false;
+        
         const dateString = formatPostDate(post.createdAt);
         const displayContent = post.truncated ? 
-            post.content.substring(0, 150) + '... ' : 
-            post.content;
+            textToHtml(post.content.substring(0, 150), isVerified) + '... ' : 
+            textToHtml(post.content, isVerified);
         const canModify = this.canModifyPost(post);
 
+        const isAuthor = auth.currentUser?.uid === post.userId;
+        const canEdit = this.canEditPost(post);
+        
         postElement.innerHTML = `
             <div class="post-content-wrapper" onclick="window.location.href='post.html?id=${postId}'">
+                ${post.isPinned ? `
+                    <div class="post-pinned-badge">
+                        <i class="ri-pushpin-fill"></i> Pinned
+                    </div>` : ''}
                 <div class="post-header">
                     <div class="post-author">
                         <a href="profile.html?uid=${post.userId}" class="author-info" onclick="event.stopPropagation()">
                             <div class="author-avatar">
-                                ${post.profilePicUrl ? 
-                                    `<img src="${post.profilePicUrl}" alt="${post.displayName || post.username}">` :
+                                ${profilePicUrl ? 
+                                    `<img src="${profilePicUrl}" alt="${displayName}">` :
                                     `<i class="ri-user-fill"></i>`}
                             </div>
                             <div class="author-name">
-                                <strong>${post.displayName || post.username}</strong>
-                                <small>@${post.username}</small>
-                                ${post.isVerified ? 
+                                <strong>${displayName}</strong>
+                                <small>@${username}</small>
+                                ${isVerified ? 
                                     `<span class="verified-badge" title="Verified Account">
                                         <i class="ri-verified-badge-fill"></i>
                                     </span>` : 
@@ -601,6 +759,11 @@ class App {
                         </a>
                     </div>
                     <span>${dateString}</span>
+                    ${isAuthor ? `
+                        <button class="post-menu-btn">
+                            <i class="ri-more-2-fill"></i>
+                        </button>
+                    ` : ''}
                 </div>
                 <div class="post-content">
                     <div class="post-text" ${canModify ? 'contenteditable="true"' : ''}>
@@ -633,6 +796,14 @@ class App {
             </div>
         `;
 
+        if (isAuthor) {
+            const menuBtn = postElement.querySelector('.post-menu-btn');
+            menuBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.showPostMenu(post, postId, menuBtn);
+            });
+        }
+
         // Setup event listeners
         this.setupPostEventListeners(postElement, post, postId, canModify);
 
@@ -645,6 +816,104 @@ class App {
         }
 
         return postElement;
+    }
+
+    showPostMenu(post, postId, menuBtn) {
+        // Remove any existing menus
+        document.querySelectorAll('.post-context-menu').forEach(m => m.remove());
+
+        const menu = document.createElement('div');
+        menu.className = 'post-context-menu';
+        
+        const canEdit = this.canEditPost(post);
+        
+        menu.innerHTML = `
+            ${canEdit ? `
+                <div class="menu-item edit-post">
+                    <i class="ri-edit-line"></i> Edit
+                </div>
+            ` : `
+                <div class="menu-item disabled" title="Edit time expired">
+                    <i class="ri-edit-line"></i> Edit
+                </div>
+            `}
+            <div class="menu-item ${post.isPinned ? 'unpin-post' : 'pin-post'}">
+                <i class="ri-pushpin-${post.isPinned ? 'fill' : 'line'}"></i>
+                ${post.isPinned ? 'Unpin' : 'Pin to Profile'}
+            </div>
+            <div class="menu-item danger delete-post">
+                <i class="ri-delete-bin-line"></i> Delete
+            </div>
+        `;
+
+        if (window.innerWidth <= 768) {
+            menu.className = 'post-context-menu mobile';
+            document.body.appendChild(menu);
+        } else {
+            menuBtn.parentElement.appendChild(menu);
+        }
+
+        // Close menu when clicking outside
+        const closeMenu = (e) => {
+            if (!menu.contains(e.target) && !menuBtn.contains(e.target)) {
+                menu.remove();
+                document.removeEventListener('click', closeMenu);
+            }
+        };
+        
+        setTimeout(() => document.addEventListener('click', closeMenu), 0);
+
+        // Setup menu actions
+        if (canEdit) {
+            menu.querySelector('.edit-post')?.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.startEditing(post, postId);
+                menu.remove();
+            });
+        }
+
+        menu.querySelector('.pin-post, .unpin-post')?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.togglePin(post, postId);
+            menu.remove();
+        });
+
+        menu.querySelector('.delete-post')?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.handleDeletePost(postId);
+            menu.remove();
+        });
+    }
+
+    canEditPost(post) {
+        if (!auth.currentUser || post.userId !== auth.currentUser.uid) return false;
+        if (post.isVerified) return true;
+        
+        const postTime = post.createdAt.toDate();
+        const timeDiff = (Date.now() - postTime.getTime()) / 1000 / 60; // minutes
+        return timeDiff <= 10; // 10 minutes for non-verified users
+    }
+
+    async togglePin(post, postId) {
+        try {
+            const userRef = doc(db, 'users', auth.currentUser.uid);
+            const postRef = doc(db, 'posts', postId);
+
+            if (post.isPinned) {
+                await updateDoc(postRef, { isPinned: false });
+                await updateDoc(userRef, { 
+                    pinnedPosts: arrayRemove(postId)
+                });
+            } else {
+                await updateDoc(postRef, { isPinned: true });
+                await updateDoc(userRef, { 
+                    pinnedPosts: arrayUnion(postId)
+                });
+            }
+        } catch (error) {
+            console.error('Error toggling pin:', error);
+            alert('Error updating post');
+        }
     }
 
     setupPostEventListeners(postElement, post, postId, canModify) {
@@ -706,7 +975,7 @@ class App {
                 // Unlike the post
                 await deleteDoc(likeRef);
                 await updateDoc(postRef, {
-                    likes: increment(-1)
+                    likes: fbIncrement(-1) // Use fbIncrement instead of increment
                 });
                 likeBtn.classList.remove('active');
                 likeBtn.querySelector('i').className = 'ri-heart-3-line';
@@ -717,7 +986,7 @@ class App {
                     createdAt: serverTimestamp()
                 });
                 await updateDoc(postRef, {
-                    likes: increment(1)
+                    likes: fbIncrement(1) // Use fbIncrement instead of increment
                 });
                 likeBtn.classList.add('active');
                 likeBtn.querySelector('i').className = 'ri-heart-3-fill';
@@ -822,7 +1091,7 @@ class App {
         try {
             const postRef = doc(db, 'posts', postId);
             await updateDoc(postRef, {
-                likes: increment(1)
+                likes: fbIncrement(1) // Use fbIncrement instead of increment
             });
         } catch (error) {
             alert(error.message);
@@ -862,6 +1131,55 @@ class App {
         // Clear cache and remove listeners when component unmounts
         this.postCache.clear();
         clearTimeout(this.debounceTimer);
+    }
+
+    setupMobileNav() {
+        if (document.querySelector('.mobile-nav')) return; // Don't add if already exists
+
+        const nav = document.createElement('nav');
+        nav.className = 'mobile-nav';
+        nav.style.display = window.innerWidth <= 768 ? 'flex' : 'none';
+
+        const currentPage = window.location.pathname.split('/').pop() || 'index.html';
+
+        nav.innerHTML = `
+            <a href="index.html" class="mobile-nav-item ${currentPage === 'index.html' ? 'active' : ''}">
+                <i class="ri-home-5-line"></i>
+                <span>Home</span>
+            </a>
+            <a href="search.html" class="mobile-nav-item ${currentPage === 'search.html' ? 'active' : ''}">
+                <i class="ri-search-line"></i>
+                <span>Search</span>
+            </a>
+            <button class="mobile-nav-item" id="mobileNewPost">
+                <i class="ri-add-circle-line"></i>
+                <span>Post</span>
+            </button>
+            <a href="profile.html" class="mobile-nav-item ${currentPage === 'profile.html' ? 'active' : ''}">
+                <i class="ri-user-3-line"></i>
+                <span>Profile</span>
+            </a>
+            <a href="settings.html" class="mobile-nav-item ${currentPage === 'settings.html' ? 'active' : ''}">
+                <i class="ri-settings-4-line"></i>
+                <span>More</span>
+            </a>
+        `;
+
+        document.body.appendChild(nav);
+
+        // New post button handler
+        nav.querySelector('#mobileNewPost').addEventListener('click', () => {
+            if (auth.currentUser) {
+                this.showPostCreationModal();
+            } else {
+                this.auth.showLoginForm();
+            }
+        });
+
+        // Update nav visibility on resize
+        window.addEventListener('resize', () => {
+            nav.style.display = window.innerWidth <= 768 ? 'flex' : 'none';
+        });
     }
 }
 

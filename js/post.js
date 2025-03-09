@@ -1,6 +1,6 @@
 import { auth, db } from './config.js';
 import { doc, getDoc, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp } from 'https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js';
-import { formatPostDate, checkContent } from './utils.js';
+import { formatPostDate, checkContent, textToHtml } from './utils.js';
 import { EmbedGenerator } from './embeds.js';
 
 class PostDetail {
@@ -56,7 +56,7 @@ class PostDetail {
                 </div>
             </div>
             <div class="post-detail-content">
-                <p>${post.content}</p>
+                <p>${textToHtml(post.content)}</p>
                 ${post.isVerified ? 
                     '<span class="verified-post-badge">Posted by verified user</span>' : 
                     ''}

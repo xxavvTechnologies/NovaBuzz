@@ -2,12 +2,20 @@
 <html lang="en">
 <head>
     <title>Post - Nova Buzz</title>
+    <link rel="icon" type="image/x-icon" href="https://d2zcpib8duehag.cloudfront.net/Nova%20buzz.png">
     <link rel="stylesheet" href="styles/main.css">
     <link rel="stylesheet" href="styles/components.css">
     <link rel="stylesheet" href="styles/animations.css">
     <link rel="stylesheet" href="styles/mobile.css">
     <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#6c23fc">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="https://d2zcpib8duehag.cloudfront.net/Nova%20buzz.png">
 
     <!-- Primary Meta Tags -->
     <meta name="title" content="Nova Buzz - Share Your Thoughts">
@@ -41,9 +49,9 @@
     <meta name="theme-color" content="#6c5ce7">
     
     <!-- Icons -->
-    <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png">
-    <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="https://d2zcpib8duehag.cloudfront.net/Nova%20buzz.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="https://d2zcpib8duehag.cloudfront.net/Nova%20buzz.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="https://d2zcpib8duehag.cloudfront.net/Nova%20buzz.png">
     <link rel="manifest" href="/manifest.json">
 </head>
 <body>
@@ -54,13 +62,16 @@
                 Nova Buzz
             </div>
             <div class="nav-links glass-light">
-                <a href="index.html" id="homeLink" class="nav-link">
+                <a href="index.html" class="nav-link">
                     <i class="ri-home-5-line"></i> Home
                 </a>
-                <a href="profile.html" id="profileLink" class="nav-link">
+                <a href="search.html" class="nav-link">
+                    <i class="ri-search-line"></i> Search
+                </a>
+                <a href="profile.html" class="nav-link">
                     <i class="ri-user-3-line"></i> Profile
                 </a>
-                <a href="settings.html" id="settingsLink" class="nav-link">
+                <a href="settings.html" class="nav-link">
                     <i class="ri-settings-4-line"></i> Settings
                 </a>
                 <a href="#" id="loginBtn" class="nav-link">
@@ -77,7 +88,11 @@
     </nav>
 
     <main class="main-content">
-        <div class="post-detail-container">
+        <aside class="left-sidebar">
+            <!-- Navigation shortcuts will be injected here -->
+        </aside>
+
+        <div class="post-section">
             <div id="postContent" class="post-detail glass">
                 <!-- Post content will be injected here -->
             </div>
@@ -85,14 +100,20 @@
             <div class="comments-section glass">
                 <h3>Comments</h3>
                 <div class="comment-form">
-                    <textarea id="commentText" placeholder="Write a comment..."></textarea>
-                    <button id="submitComment">Comment</button>
+                    <textarea id="commentText" placeholder="Add a comment..."></textarea>
+                    <button id="submitComment" class="form-button">
+                        <i class="ri-send-plane-fill"></i> Comment
+                    </button>
                 </div>
                 <div id="comments" class="comments-list">
                     <!-- Comments will be injected here -->
                 </div>
             </div>
         </div>
+
+        <aside class="right-sidebar">
+            <!-- Search and trending will be injected here -->
+        </aside>
     </main>
 
     <footer class="footer glass">
@@ -110,14 +131,10 @@
             <div class="footer-section">
                 <h4>Connect</h4>
                 <div class="social-links">
-                    <a href="#" class="social-icon"><i class="ri-twitter-line"></i></a>
-                    <a href="#" class="social-icon"><i class="ri-discord-line"></i></a>
-                    <a href="#" class="social-icon"><i class="ri-mail-line"></i></a>
+                    <a href="#" class="social-icon"><i class="ri-twitter-fill"></i></a>
+                    <a href="#" class="social-icon"><i class="ri-github-fill"></i></a>
                 </div>
             </div>
-        </div>
-        <div class="footer-bottom">
-            <p>&copy; 2025 Nova Buzz. All rights reserved.</p>
         </div>
     </footer>
 
@@ -128,5 +145,18 @@
     <script type="module" src="js/auth.js"></script>
     <script type="module" src="js/app.js"></script>
     <script type="module" src="js/post.js"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(registration => {
+                        console.log('ServiceWorker registration successful');
+                    })
+                    .catch(err => {
+                        console.log('ServiceWorker registration failed: ', err);
+                    });
+            });
+        }
+    </script>
 </body>
 </html>

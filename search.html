@@ -64,16 +64,16 @@
                 Nova Buzz
             </div>
             <div class="nav-links glass-light">
-                <a href="index.html" id="homeLink" class="nav-link active">
+                <a href="index.html" class="nav-link">
                     <i class="ri-home-5-line"></i> Home
                 </a>
-                <a href="search.html" class="nav-link">
+                <a href="search.html" class="nav-link active">
                     <i class="ri-search-line"></i> Search
                 </a>
-                <a href="profile.html" id="profileLink" class="nav-link">
+                <a href="profile.html" class="nav-link">
                     <i class="ri-user-3-line"></i> Profile
                 </a>
-                <a href="settings.html" id="settingsLink" class="nav-link">
+                <a href="settings.html" class="nav-link">
                     <i class="ri-settings-4-line"></i> Settings
                 </a>
                 <a href="#" id="loginBtn" class="nav-link">
@@ -91,26 +91,69 @@
 
     <main class="main-content">
         <aside class="left-sidebar">
-            <!-- Navigation shortcuts will be injected here -->
-        </aside>
-
-        <div class="feed-section">
-            <div id="authContainer" class="auth-container">
-                <!-- Auth forms will be injected here -->
+            <div class="search-filters glass">
+                <h3><i class="ri-filter-3-line"></i> Filters</h3>
+                <div class="filter-options">
+                    <button class="filter-btn active" data-filter="all">
+                        <i class="ri-apps-line"></i> All
+                    </button>
+                    <button class="filter-btn" data-filter="users">
+                        <i class="ri-user-3-line"></i> Users
+                    </button>
+                    <button class="filter-btn" data-filter="posts">
+                        <i class="ri-chat-1-line"></i> Posts
+                    </button>
+                    <button class="filter-btn" data-filter="hashtags">
+                        <i class="ri-hashtag"></i> Hashtags
+                    </button>
+                </div>
             </div>
 
-            <div id="feedContainer" class="feed-container" style="display: none;">
-                <div class="post-form glass">
-                    <!-- Post form will be replaced by JS -->
+            <div class="search-tips glass">
+                <h3><i class="ri-lightbulb-line"></i> Search Tips</h3>
+                <ul class="tips-list">
+                    <li><code>@username</code> to find users</li>
+                    <li><code>#hashtag</code> to find topics</li>
+                    <li><code>"exact phrase"</code> for exact matches</li>
+                </ul>
+            </div>
+        </aside>
+
+        <div class="search-content">
+            <div class="search-header glass">
+                <div class="search-bar">
+                    <div class="search-input-wrapper">
+                        <i class="ri-search-line"></i>
+                        <input type="text" 
+                               class="search-input" 
+                               placeholder="Search users, posts, or topics..."
+                               autofocus>
+                    </div>
                 </div>
-                <div id="posts" class="posts-list">
-                    <!-- Posts will be injected here -->
+            </div>
+
+            <div class="search-results-container">
+                <div class="search-results glass">
+                    <!-- Search results will be injected here -->
                 </div>
             </div>
         </div>
 
         <aside class="right-sidebar">
-            <!-- Search and trending will be injected here -->
+            <div class="trending-topics glass">
+                <h3><i class="ri-hashtag"></i> Trending Topics</h3>
+                <div class="hashtag-list">
+                    <!-- Trending hashtags will be injected here -->
+                </div>
+            </div>
+
+            <div class="recent-searches glass">
+                <h3><i class="ri-time-line"></i> Recent Searches</h3>
+                <div class="recent-list">
+                    <!-- Recent searches will be injected here -->
+                </div>
+                <button class="clear-history-btn">Clear History</button>
+            </div>
         </aside>
     </main>
 
@@ -142,6 +185,7 @@
     <script type="module" src="js/config.js"></script>
     <script type="module" src="js/auth.js"></script>
     <script type="module" src="js/app.js"></script>
+    <script type="module" src="js/search.js"></script>
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
