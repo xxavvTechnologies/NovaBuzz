@@ -649,51 +649,65 @@ class App {
                 <button class="like-btn" data-post-id="${postId}">
                     <i class="ri-heart-3-line"></i> ${post.likes || 0}
                 </button>
+                <button class="quick-action-btn reply-btn" data-post-id="${postId}">
+                    <i class="ri-reply-line"></i> Reply
+                </button>
+                <button class="quick-action-btn quote-btn" data-post-id="${postId}">
+                    <i class="ri-double-quotes-l"></i> Quote
+                </button>
                 <a href="post.html?id=${postId}" class="view-discussion">
                     <i class="ri-chat-1-line"></i> View Discussion
                 </a>
             </div>
-        `;
+            <div class="quick-reply-form" id="reply-form-${postId}">
+                <textarea placeholder="Write your reply..."></textarea>
+                <div class="button-group">
+                    <button class="form-button submit-reply">Reply</button>
+                    <button class="form-button secondary cancel-reply">Cancel</button>
+                </div>
+            </div>`;
 
-        // Setup edit functionality
-        if (canModify) {
-            const postText = postElement.querySelector('.post-text');
-            const saveBtn = postElement.querySelector('.save-edit-btn');
-            const cancelBtn = postElement.querySelector('.cancel-edit-btn');
-            const deleteBtn = postElement.querySelector('.delete-post-btn');
-            let originalContent = post.content;
+        // Add event listeners for reply and quote
+        const replyBtn = postElement.querySelector('.reply-btn');
+        const quoteBtn = postElement.querySelector('.quote-btn');
+        const replyForm = postElement.querySelector('.quick-reply-form');
+        
+        replyBtn.addEventListener('click', () => {
+            replyForm.classList.toggle('active');
+            const textarea = replyForm.querySelector('textarea');
+            textarea.focus();
+        });
 
-            postText.addEventListener('input', () => {
-                saveBtn.style.display = 'inline-block';
-                cancelBtn.style.display = 'inline-block';
-            });
+        quoteBtn.addEventListener('click', () => {
+            replyForm.classList.add('active');
+            const textarea = replyForm.querySelector('textarea');
+            const quotedContent = `<div class="quoted-content">
+                <div class="quoted-author">@${post.username}</div>
+                ${post.content}
+            </div>\n\n`;
+            textarea.value = quotedContent;
+            textarea.focus();
+        });
 
-            postText.addEventListener('click', (e) => e.stopPropagation());
+        const cancelReply = replyForm.querySelector('.cancel-reply');
+        cancelReply.addEventListener('click', () => {
+            replyForm.classList.remove('active');
+            replyForm.querySelector('textarea').value = '';
+        });
 
-            saveBtn.addEventListener('click', async (e) => {
-                e.stopPropagation();
-                const newContent = postText.innerText.trim();
-                if (newContent !== originalContent) {
-                    await this.updatePost(postId, newContent);
-                }
-                saveBtn.style.display = 'none';
-                cancelBtn.style.display = 'none';
-            });
+        const submitReply = replyForm.querySelector('.submit-reply');
+        submitReply.addEventListener('click', async () => {
+            const content = replyForm.querySelector('textarea').value.trim();
+            if (!content) return;
 
-            cancelBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                postText.innerText = originalContent;
-                saveBtn.style.display = 'none';
-                cancelBtn.style.display = 'none';
-            });
-
-            deleteBtn.addEventListener('click', async (e) => {
-                e.stopPropagation();
-                if (confirm('Are you sure you want to delete this post?')) {
-                    await this.deletePost(postId);
-                }
-            });
-        }
+            try {
+                await this.createComment(postId, content);
+                replyForm.classList.remove('active');
+                replyForm.querySelector('textarea').value = '';
+            } catch (error) {
+                alert(error.message);
+            }
+        });
 
         // Prevent like button from triggering post click
         const likeBtn = postElement.querySelector('.like-btn');
@@ -790,11 +804,23 @@ class App {
                 <button class="like-btn ${post.hasLiked ? 'active' : ''}" data-post-id="${postId}">
                     <i class="ri-${post.hasLiked ? 'heart-3-fill' : 'heart-3-line'}"></i> ${post.likes || 0}
                 </button>
+                <button class="quick-action-btn reply-btn" data-post-id="${postId}">
+                    <i class="ri-reply-line"></i> Reply
+                </button>
+                <button class="quick-action-btn quote-btn" data-post-id="${postId}">
+                    <i class="ri-double-quotes-l"></i> Quote
+                </button>
                 <a href="post.html?id=${postId}" class="view-discussion">
                     <i class="ri-chat-1-line"></i> View Discussion
                 </a>
             </div>
-        `;
+            <div class="quick-reply-form" id="reply-form-${postId}">
+                <textarea placeholder="Write your reply..."></textarea>
+                <div class="button-group">
+                    <button class="form-button submit-reply">Reply</button>
+                    <button class="form-button secondary cancel-reply">Cancel</button>
+                </div>
+            </div>`;
 
         if (isAuthor) {
             const menuBtn = postElement.querySelector('.post-menu-btn');
@@ -1125,6 +1151,23 @@ class App {
         if (confirm('Are you sure you want to delete this post?')) {
             this.deletePost(postId);
         }
+    }
+
+    async createComment(postId, content) {
+        if (!auth.currentUser) {
+            throw new Error('Please login to comment');
+        }
+
+        await checkContent(content, 'comment');
+        const userDoc = await getDoc(doc(db, 'users', auth.currentUser.uid));
+        const userData = userDoc.data();
+
+        await addDoc(collection(db, 'posts', postId, 'comments'), {
+            content,
+            userId: auth.currentUser.uid,
+            username: userData.username,
+            createdAt: serverTimestamp()
+        });
     }
 
     cleanup() {
