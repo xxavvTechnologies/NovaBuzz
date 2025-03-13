@@ -106,3 +106,89 @@ export function textToHtml(text, isVerified = false) {
     
     return html;
 }
+
+export class ErrorHandler {
+    static async handleError(error, context = '') {
+        console.error(`Error in ${context}:`, error);
+        
+        // Network error handling
+        if (!navigator.onLine) {
+            return {
+                type: 'network',
+                message: 'You appear to be offline. Please check your connection.'
+            };
+        }
+
+        // Firebase errors
+        if (error.code) {
+            switch (error.code) {
+                case 'permission-denied':
+                    return {
+                        type: 'auth',
+                        message: 'You do not have permission to perform this action'
+                    };
+                case 'not-found':
+                    return {
+                        type: 'data',
+                        message: 'The requested resource was not found'
+                    };
+                default:
+                    return {
+                        type: 'unknown',
+                        message: 'An error occurred. Please try again later.'
+                    };
+            }
+        }
+
+        // Generic error with retry suggestion
+        return {
+            type: 'unknown',
+            message: 'Something went wrong. Please try again.'
+        };
+    }
+
+    static async retry(fn, maxAttempts = 3, delay = 1000) {
+        for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+            try {
+                return await fn();
+            } catch (error) {
+                if (attempt === maxAttempts) throw error;
+                await new Promise(resolve => setTimeout(resolve, delay * attempt));
+            }
+        }
+    }
+}
+
+export function debounce(fn, delay) {
+    let timeoutId;
+    return (...args) => {
+        if (timeoutId) clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => fn(...args), delay);
+    };
+}
+
+export function throttle(fn, limit) {
+    let inThrottle;
+    return (...args) => {
+        if (!inThrottle) {
+            fn(...args);
+            inThrottle = true;
+            setTimeout(() => inThrottle = false, limit);
+        }
+    };
+}
+
+export function isOnline() {
+    return navigator.onLine;
+}
+
+// Add offline state monitoring
+export function setupOfflineListener(onOffline, onOnline) {
+    window.addEventListener('offline', onOffline);
+    window.addEventListener('online', onOnline);
+    
+    return () => {
+        window.removeEventListener('offline', onOffline);
+        window.removeEventListener('online', onOnline);
+    };
+}

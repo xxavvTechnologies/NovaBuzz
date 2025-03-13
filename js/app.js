@@ -20,9 +20,10 @@ import {
     arrayRemove,
     arrayUnion
 } from 'https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js';
-import { formatPostDate, checkContent, extractHashtags, updateHashtagCount, getCurrentUserData, textToHtml } from './utils.js';
+import { formatPostDate, checkContent, extractHashtags, updateHashtagCount, getCurrentUserData, textToHtml, setupOfflineListener } from './utils.js';
 import { SearchWidget } from './search.js';
 import { ThemeManager } from './themeManager.js';
+import { NotificationSystem } from './notifications.js';
 
 class App {
     constructor() {
@@ -37,7 +38,7 @@ class App {
         this.setupKeyboardShortcuts();
         
         // Only initialize feed elements if we're on the home page
-        if (window.location.pathname.endsWith('index.html') || window.location.pathname === '/') {
+        if (window.location.pathname.endsWith('home.html') || window.location.pathname === '/') {
             this.initializeFeed();
         }
         this.setupWelcomeBanner();
@@ -49,6 +50,12 @@ class App {
         new ThemeManager();
 
         this.setupMobileNav();
+        this.offlineCleanup = setupOfflineListener(
+            () => this.handleOffline(),
+            () => this.handleOnline()
+        );
+        this.setupErrorHandling();
+        this.notifications = new NotificationSystem();
     }
 
     setupKeyboardShortcuts() {
@@ -516,8 +523,18 @@ class App {
         return userData;
     }
 
-    async createPost() {
-        const content = this.postContent.value.trim();
+    async createPost(postData) {
+        let content;
+        let quotedPostId;
+
+        // Handle both string and object inputs
+        if (typeof postData === 'string') {
+            content = postData;
+        } else {
+            content = postData.content;
+            quotedPostId = postData.quotedPostId;
+        }
+
         if (!content) return;
 
         try {
@@ -529,13 +546,20 @@ class App {
 
             // Check user status before allowing post
             const userData = await this.checkUserStatus(user.uid);
-            await checkContent(content, 'post');
+            
+            // For quote posts, only check content after the quote
+            const actualContent = quotedPostId ? 
+                content.split('\n\n').slice(1).join('\n\n') : 
+                content;
+
+            await checkContent(actualContent, 'post');
 
             const userDoc = await getDoc(doc(db, 'users', user.uid));
             const isVerified = userDoc.data()?.isVerified;
             const MAX_CHARS = isVerified ? 2000 : 250;
 
-            if (content.length > MAX_CHARS) {
+            // Only count non-quoted content toward character limit
+            if (actualContent.length > MAX_CHARS) {
                 alert(`Post cannot exceed ${MAX_CHARS} characters${isVerified ? ' (Verified User)' : ''}`);
                 return;
             }
@@ -554,7 +578,7 @@ class App {
             const hashtags = extractHashtags(content);
 
             // Create post with hashtags
-            const postData = {
+            const postDataToSave = {
                 content: content, // Store raw content
                 contentLower: content.toLowerCase(),
                 userId: user.uid,
@@ -567,7 +591,15 @@ class App {
                 hashtags: hashtags // Add hashtags to post
             };
 
-            const postRef = await addDoc(collection(db, 'posts'), postData);
+            if (quotedPostId) {
+                postDataToSave.quotedPost = {
+                    id: quotedPostId,
+                    username: postData.quotedUsername,
+                    content: postData.quotedContent
+                };
+            }
+
+            const postRef = await addDoc(collection(db, 'posts'), postDataToSave);
 
             // Update hashtag counts
             await Promise.all(hashtags.map(tag => updateHashtagCount(db, tag)));
@@ -583,6 +615,9 @@ class App {
         if (!auth.currentUser || post.userId !== auth.currentUser.uid) return false;
         if (post.isVerified) return true;
         
+        // Add null check for createdAt
+        if (!post.createdAt) return false;
+        
         const postTime = post.createdAt.toDate();
         const timeDiff = (Date.now() - postTime.getTime()) / 1000 / 60; // minutes
         return timeDiff <= 30;
@@ -597,7 +632,7 @@ class App {
             : 'Just now';
 
         const displayContent = post.truncated ? 
-            textToHtml(post.content.substring(0, 150), post.isVerified) + '... ' : 
+            textToHtml(post.content.substring(0, 150) + '...', post.isVerified) : 
             textToHtml(post.content, post.isVerified);
 
         const canModify = this.canModifyPost(post);
@@ -739,14 +774,31 @@ class App {
         const isVerified = currentUserData?.isVerified || false;
         
         const dateString = formatPostDate(post.createdAt);
-        const displayContent = post.truncated ? 
-            textToHtml(post.content.substring(0, 150), isVerified) + '... ' : 
-            textToHtml(post.content, isVerified);
         const canModify = this.canModifyPost(post);
 
         const isAuthor = auth.currentUser?.uid === post.userId;
         const canEdit = this.canEditPost(post);
         
+        // Handle quoted content display
+        let displayContent = '';
+        if (post.quotedPost) {
+            displayContent = `
+                <div class="quoted-content" data-post-id="${post.quotedPost.id}">
+                    <div class="quoted-author">@${post.quotedPost.username}</div>
+                    <div class="quoted-text">${textToHtml(post.quotedPost.content, false)}</div>
+                </div>
+                <div class="post-text" ${canModify ? 'contenteditable="true"' : ''}>
+                    ${textToHtml(post.content, isVerified)}
+                </div>
+            `;
+        } else {
+            displayContent = `
+                <div class="post-text" ${canModify ? 'contenteditable="true"' : ''}>
+                    ${textToHtml(post.content, isVerified)}
+                </div>
+            `;
+        }
+
         postElement.innerHTML = `
             <div class="post-content-wrapper" onclick="window.location.href='post.html?id=${postId}'">
                 ${post.isPinned ? `
@@ -780,9 +832,7 @@ class App {
                     ` : ''}
                 </div>
                 <div class="post-content">
-                    <div class="post-text" ${canModify ? 'contenteditable="true"' : ''}>
-                        ${displayContent}
-                    </div>
+                    ${displayContent}
                     ${post.truncated ? '<span class="read-more">Read More</span>' : ''}
                     ${post.edited ? '<span class="edited-tag">(edited)</span>' : ''}
                 </div>
@@ -915,9 +965,12 @@ class App {
         if (!auth.currentUser || post.userId !== auth.currentUser.uid) return false;
         if (post.isVerified) return true;
         
+        // Add null check for createdAt and timestamp
+        if (!post.createdAt || typeof post.createdAt.toDate !== 'function') return false;
+        
         const postTime = post.createdAt.toDate();
-        const timeDiff = (Date.now() - postTime.getTime()) / 1000 / 60; // minutes
-        return timeDiff <= 10; // 10 minutes for non-verified users
+        const timeDiff = (Date.now() - postTime.getTime()) / 1000 / 60;
+        return timeDiff <= 10;
     }
 
     async togglePin(post, postId) {
@@ -981,6 +1034,141 @@ class App {
                 this.handleLike(postId, likeBtn);
             });
         }
+
+        // Add reply button handler
+        const replyBtn = postElement.querySelector('.reply-btn');
+        const quoteBtn = postElement.querySelector('.quote-btn');
+        const replyForm = postElement.querySelector('.quick-reply-form');
+
+        if (replyBtn && replyForm) {
+            replyBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.handleReply(replyForm);
+            });
+        }
+
+        if (quoteBtn && replyForm) {
+            quoteBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.handleQuote(replyForm, post, postId); // Pass postId to handleQuote
+            });
+        }
+
+        // Add submit and cancel handlers for reply form
+        const submitReply = replyForm?.querySelector('.submit-reply');
+        const cancelReply = replyForm?.querySelector('.cancel-reply');
+
+        submitReply?.addEventListener('click', async () => {
+            const content = replyForm.querySelector('textarea').value.trim();
+            if (!content) return;
+
+            try {
+                await this.createComment(postId, content);
+                replyForm.classList.remove('active');
+                replyForm.querySelector('textarea').value = '';
+            } catch (error) {
+                alert(error.message);
+            }
+        });
+
+        cancelReply?.addEventListener('click', () => {
+            replyForm.classList.remove('active');
+            replyForm.querySelector('textarea').value = '';
+        });
+    }
+
+    handleReply(replyForm) {
+        if (!auth.currentUser) {
+            this.auth.showLoginForm();
+            return;
+        }
+        replyForm.classList.add('active');
+        replyForm.querySelector('textarea').focus();
+    }
+
+    handleQuote(replyForm, post, postId) { // Add postId parameter
+        if (!auth.currentUser) {
+            this.auth.showLoginForm();
+            return;
+        }
+
+        // Improved quote formatting
+        const truncatedQuote = post.content.length > 200 ? 
+            post.content.substring(0, 200) + '...' : 
+            post.content;
+
+        const modal = document.createElement('div');
+        modal.className = 'create-post-modal';
+        modal.innerHTML = `
+            <div class="modal-header">
+                <h3 class="modal-title">Quote Post</h3>
+                <button class="close-btn">
+                    <i class="ri-close-line"></i>
+                </button>
+            </div>
+            <div class="post-form">
+                <div class="quoted-content-preview">
+                    <div class="quoted-author">@${post.username}</div>
+                    <div class="quoted-text">${textToHtml(truncatedQuote, post.isVerified)}</div>
+                </div>
+                <textarea id="modalPostContent" placeholder="Add your thoughts..." autofocus></textarea>
+                <div class="character-counter"></div>
+                <button id="modalSubmitPost" class="form-button">
+                    <i class="ri-send-plane-fill"></i> Post
+                </button>
+            </div>
+        `;
+
+        const overlay = document.createElement('div');
+        overlay.className = 'modal-overlay';
+        overlay.appendChild(modal);
+        document.body.appendChild(overlay);
+
+        // Make quoted content clickable
+        const quotedDiv = modal.querySelector('.quoted-content');
+        quotedDiv.addEventListener('click', () => {
+            window.location.href = `post.html?id=${postId}`;
+        });
+
+        // Setup modal functionality
+        const postContent = modal.querySelector('#modalPostContent');
+        const submitPost = modal.querySelector('#modalSubmitPost');
+        const counterDiv = modal.querySelector('.character-counter');
+        const closeBtn = modal.querySelector('.close-btn');
+
+        // Close modal handlers
+        const closeModal = () => overlay.remove();
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) closeModal();
+        });
+        closeBtn.addEventListener('click', closeModal);
+
+        submitPost.addEventListener('click', async () => {
+            const content = postContent.value.trim();
+            if (!content) return;
+
+            try {
+                const postData = {
+                    content,
+                    quotedPostId: postId,
+                    quotedUsername: post.username,
+                    quotedContent: truncatedQuote
+                };
+                await this.createPost(postData);
+                closeModal();
+            } catch (error) {
+                alert('Error creating post: ' + error.message);
+            }
+        });
+
+        // Add character counter that excludes quoted content
+        const updateCharCount = () => {
+            const length = postContent.value.length;
+            counterDiv.textContent = `${length} characters`;
+            submitPost.disabled = length === 0;
+        };
+        postContent.addEventListener('input', updateCharCount);
+        updateCharCount();
     }
 
     async handleLike(postId, likeBtn) {
@@ -1022,6 +1210,18 @@ class App {
             const likesCount = await getDoc(postRef);
             const likesElement = likeBtn.querySelector('i').nextSibling;
             likesElement.textContent = ` ${likesCount.data().likes || 0}`;
+
+            // Add notification after successful like
+            const postDoc = await getDoc(postRef);
+            const post = postDoc.data();
+
+            await this.notifications.createNotification({
+                type: 'like',
+                recipientId: post.userId,
+                senderId: auth.currentUser.uid,
+                message: `${auth.currentUser.displayName || 'Someone'} liked your post`,
+                postId
+            });
         } catch (error) {
             console.error('Error toggling like:', error);
             alert('Error updating like');
@@ -1168,12 +1368,46 @@ class App {
             username: userData.username,
             createdAt: serverTimestamp()
         });
+
+        // Add notification
+        const postRef = doc(db, 'posts', postId);
+        const postDoc = await getDoc(postRef);
+        const post = postDoc.data();
+
+        await this.notifications.createNotification({
+            type: 'comment',
+            recipientId: post.userId,
+            senderId: auth.currentUser.uid,
+            message: `${auth.currentUser.displayName || 'Someone'} commented on your post`,
+            postId
+        });
+
+        // Check for mentions and notify
+        const mentions = content.match(/@(\w+)/g) || [];
+        for (const mention of mentions) {
+            const username = mention.slice(1);
+            const userQuery = query(collection(db, 'users'), 
+                where('usernameLower', '==', username.toLowerCase()));
+            const userSnapshot = await getDocs(userQuery);
+            
+            if (!userSnapshot.empty) {
+                const mentionedUser = userSnapshot.docs[0];
+                await this.notifications.createNotification({
+                    type: 'mention',
+                    recipientId: mentionedUser.id,
+                    senderId: auth.currentUser.uid,
+                    message: `${auth.currentUser.displayName || 'Someone'} mentioned you in a comment`,
+                    postId
+                });
+            }
+        }
     }
 
     cleanup() {
         // Clear cache and remove listeners when component unmounts
         this.postCache.clear();
         clearTimeout(this.debounceTimer);
+        this.offlineCleanup();
     }
 
     setupMobileNav() {
@@ -1183,10 +1417,10 @@ class App {
         nav.className = 'mobile-nav';
         nav.style.display = window.innerWidth <= 768 ? 'flex' : 'none';
 
-        const currentPage = window.location.pathname.split('/').pop() || 'index.html';
+        const currentPage = window.location.pathname.split('/').pop() || 'home.html';
 
         nav.innerHTML = `
-            <a href="index.html" class="mobile-nav-item ${currentPage === 'index.html' ? 'active' : ''}">
+            <a href="home.html" class="mobile-nav-item ${currentPage === 'home.html' ? 'active' : ''}">
                 <i class="ri-home-5-line"></i>
                 <span>Home</span>
             </a>
@@ -1222,6 +1456,64 @@ class App {
         // Update nav visibility on resize
         window.addEventListener('resize', () => {
             nav.style.display = window.innerWidth <= 768 ? 'flex' : 'none';
+        });
+    }
+
+    setupErrorHandling() {
+        window.onerror = (msg, url, line, col, error) => {
+            console.error('Global error:', { msg, url, line, col, error });
+            this.showErrorNotification('An error occurred. Please refresh the page.');
+        };
+
+        window.onunhandledrejection = (event) => {
+            console.error('Unhandled promise rejection:', event.reason);
+            this.showErrorNotification('Failed to complete action. Please try again.');
+        };
+    }
+
+    startEditing(post, postId) {
+        const postElement = document.querySelector(`[data-post-id="${postId}"]`);
+        if (!postElement) return;
+
+        const postText = postElement.querySelector('.post-text');
+        const saveBtn = postElement.querySelector('.save-edit-btn');
+        const cancelBtn = postElement.querySelector('.cancel-edit-btn');
+
+        postText.contentEditable = true;
+        postText.focus();
+        saveBtn.style.display = 'inline-block';
+        cancelBtn.style.display = 'inline-block';
+
+        // Place cursor at end
+        const range = document.createRange();
+        range.selectNodeContents(postText);
+        range.collapse(false);
+        const selection = window.getSelection();
+        selection.removeAllRanges();
+        selection.addRange(range);
+    }
+
+    async handleOffline() {
+        document.body.classList.add('offline');
+        this.notifications.showNotification({
+            type: 'warning',
+            message: 'You are currently offline'
+        });
+    }
+
+    async handleOnline() {
+        document.body.classList.remove('offline');
+        this.notifications.showNotification({
+            type: 'success', 
+            message: 'Back online!'
+        });
+        await this.syncOfflineActions();
+    }
+
+    showErrorNotification(message, type = 'error') {
+        this.notifications.showNotification({
+            type,
+            message
         });
     }
 }

@@ -234,7 +234,7 @@ export class AdminPanel {
         });
 
         alert('Account has been deleted');
-        window.location.href = 'index.html';
+        window.location.href = 'home.html';
     }
 
     showPostAdminMenu(postElement) {

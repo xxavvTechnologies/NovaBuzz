@@ -81,7 +81,7 @@ class Profile {
                 }
             } else if (!this.urlUserId) {
                 // Only redirect if not viewing someone else's profile
-                window.location.href = 'index.html';
+                window.location.href = 'home.html';
             }
         });
 

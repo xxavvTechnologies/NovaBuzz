@@ -7,7 +7,7 @@ class PostDetail {
     constructor() {
         this.postId = new URLSearchParams(window.location.search).get('id');
         if (!this.postId) {
-            window.location.href = 'index.html';
+            window.location.href = 'home.html';
             return;
         }
 
@@ -28,7 +28,7 @@ class PostDetail {
     async loadPost() {
         const postDoc = await getDoc(doc(db, 'posts', this.postId));
         if (!postDoc.exists()) {
-            window.location.href = 'index.html';
+            window.location.href = 'home.html';
             return;
         }
 

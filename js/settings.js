@@ -13,7 +13,7 @@ export class Settings {
     setupAuthListener() {
         auth.onAuthStateChanged(async user => {
             if (!user) {
-                window.location.href = 'index.html';
+                window.location.href = 'home.html';
                 return;
             }
 

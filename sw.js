@@ -1,7 +1,7 @@
 const CACHE_NAME = 'novabuzz-v1';
 const ASSETS_TO_CACHE = [
     '/',
-    '/index.html',
+    '/home.html',
     '/profile.html',
     '/search.html',
     '/settings.html',
@@ -35,64 +35,68 @@ self.addEventListener('install', event => {
 // Activate event
 self.addEventListener('activate', event => {
     event.waitUntil(
-        caches.keys().then(cacheNames => {
-            return Promise.all(
-                cacheNames
-                    .filter(cacheName => cacheName !== CACHE_NAME)
-                    .map(cacheName => caches.delete(cacheName))
-            );
-        })
+        Promise.all([
+            self.clients.claim(),
+            caches.keys().then(cacheNames => {
+                return Promise.all(
+                    cacheNames
+                        .filter(cacheName => cacheName !== CACHE_NAME)
+                        .map(cacheName => caches.delete(cacheName))
+                );
+            })
+        ])
     );
 });
 
-// Fetch event
+// Enhanced fetch event handler
 self.addEventListener('fetch', event => {
-    // Only cache GET requests
-    if (event.request.method !== 'GET') {
-        return;
-    }
-
-    // Don't cache Firebase requests
+    // Network-first strategy for API calls
     if (event.request.url.includes('firestore.googleapis.com') || 
-        event.request.url.includes('googleapis.com') ||
-        event.request.url.includes('firebase')) {
+        event.request.url.includes('googleapis.com')) {
+        event.respondWith(
+            fetch(event.request)
+                .catch(() => {
+                    return caches.match('offline.html');
+                })
+        );
         return;
     }
 
+    // Cache-first strategy for static assets
+    if (event.request.destination === 'style' || 
+        event.request.destination === 'script' ||
+        event.request.destination === 'image') {
+        event.respondWith(
+            caches.match(event.request)
+                .then(response => {
+                    return response || fetch(event.request)
+                        .then(response => {
+                            const responseClone = response.clone();
+                            caches.open(CACHE_NAME)
+                                .then(cache => {
+                                    cache.put(event.request, responseClone);
+                                });
+                            return response;
+                        });
+                })
+        );
+        return;
+    }
+
+    // Network-first strategy for HTML
     event.respondWith(
-        caches.match(event.request)
-            .then(response => {
-                // Return cached response if found
-                if (response) {
-                    return response;
-                }
-
-                // Clone the request because it can only be used once
-                const fetchRequest = event.request.clone();
-
-                return fetch(fetchRequest)
+        fetch(event.request)
+            .catch(() => {
+                return caches.match(event.request)
                     .then(response => {
-                        // Don't cache if not a valid response
-                        if (!response || response.status !== 200 || response.type !== 'basic') {
+                        if (response) {
                             return response;
                         }
-
-                        // Clone the response because it can only be used once
-                        const responseToCache = response.clone();
-
-                        caches.open(CACHE_NAME)
-                            .then(cache => {
-                                cache.put(event.request, responseToCache);
-                            });
-
-                        return response;
+                        if (event.request.mode === 'navigate') {
+                            return caches.match('offline.html');
+                        }
+                        return new Response('Network error');
                     });
-            })
-            .catch(() => {
-                // Optional: Return offline fallback
-                if (event.request.mode === 'navigate') {
-                    return caches.match('/offline.html');
-                }
             })
     );
 });

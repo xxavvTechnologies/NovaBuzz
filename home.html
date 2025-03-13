@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Search - Nova Buzz</title>
+    <title>Nova Buzz - Share Your Thoughts</title>
     <link rel="icon" type="image/x-icon" href="https://d2zcpib8duehag.cloudfront.net/Nova%20buzz.png">
     <link rel="stylesheet" href="styles/main.css">
     <link rel="stylesheet" href="styles/components.css">
     <link rel="stylesheet" href="styles/animations.css">
     <link rel="stylesheet" href="styles/mobile.css">
     <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="theme-color" content="#6c23fc">
@@ -65,16 +65,16 @@
                 Nova Buzz
             </div>
             <div class="nav-links glass-light">
-                <a href="home.html" class="nav-link">
+                <a href="home.html" id="homeLink" class="nav-link active">
                     <i class="ri-home-5-line"></i> Home
                 </a>
-                <a href="search.html" class="nav-link active">
+                <a href="search.html" class="nav-link">
                     <i class="ri-search-line"></i> Search
                 </a>
-                <a href="profile.html" class="nav-link">
+                <a href="profile.html" id="profileLink" class="nav-link">
                     <i class="ri-user-3-line"></i> Profile
                 </a>
-                <a href="settings.html" class="nav-link">
+                <a href="settings.html" id="settingsLink" class="nav-link">
                     <i class="ri-settings-4-line"></i> Settings
                 </a>
                 <a href="#" id="loginBtn" class="nav-link">
@@ -91,67 +91,28 @@
     </nav>
 
     <main class="main-content">
-        <div class="search-layout">
-            <div class="search-header glass">
-                <div class="search-bar">
-                    <div class="search-input-wrapper">
-                        <i class="ri-search-line"></i>
-                        <input type="text" 
-                               class="search-input" 
-                               placeholder="Search users, posts, or topics..."
-                               autofocus>
-                    </div>
-                </div>
-                <div class="search-filters">
-                    <button class="filter-btn active" data-filter="all">
-                        <i class="ri-apps-line"></i> All
-                    </button>
-                    <button class="filter-btn" data-filter="users">
-                        <i class="ri-user-3-line"></i> Users
-                    </button>
-                    <button class="filter-btn" data-filter="posts">
-                        <i class="ri-chat-1-line"></i> Posts
-                    </button>
-                    <button class="filter-btn" data-filter="hashtags">
-                        <i class="ri-hashtag"></i> Hashtags
-                    </button>
-                </div>
+        <aside class="left-sidebar">
+            <!-- Navigation shortcuts will be injected here -->
+        </aside>
+
+        <div class="feed-section">
+            <div id="authContainer" class="auth-container">
+                <!-- Auth forms will be injected here -->
             </div>
 
-            <div class="search-body">
-                <div class="search-main">
-                    <div class="search-results glass">
-                        <!-- Search results will be injected here -->
-                    </div>
+            <div id="feedContainer" class="feed-container" style="display: none;">
+                <div class="post-form glass">
+                    <!-- Post form will be replaced by JS -->
                 </div>
-
-                <aside class="search-sidebar">
-                    <div class="search-tips glass">
-                        <h3><i class="ri-lightbulb-line"></i> Search Tips</h3>
-                        <ul class="tips-list">
-                            <li><code>@username</code> to find users</li>
-                            <li><code>#hashtag</code> to find topics</li>
-                            <li><code>"exact phrase"</code> for exact matches</li>
-                        </ul>
-                    </div>
-
-                    <div class="trending-topics glass">
-                        <h3><i class="ri-hashtag"></i> Trending Topics</h3>
-                        <div class="hashtag-list">
-                            <!-- Trending hashtags will be injected here -->
-                        </div>
-                    </div>
-
-                    <div class="recent-searches glass">
-                        <h3><i class="ri-time-line"></i> Recent Searches</h3>
-                        <div class="recent-list">
-                            <!-- Recent searches will be injected here -->
-                        </div>
-                        <button class="clear-history-btn">Clear History</button>
-                    </div>
-                </aside>
+                <div id="posts" class="posts-list">
+                    <!-- Posts will be injected here -->
+                </div>
             </div>
         </div>
+
+        <aside class="right-sidebar">
+            <!-- Search and trending will be injected here -->
+        </aside>
     </main>
 
     <footer class="footer glass">
@@ -182,7 +143,6 @@
     <script type="module" src="js/config.js"></script>
     <script type="module" src="js/auth.js"></script>
     <script type="module" src="js/app.js"></script>
-    <script type="module" src="js/search.js"></script>
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {

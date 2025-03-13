@@ -35,6 +35,7 @@ export class Auth {
     }
 
     setupAuthStateObserver() {
+        // Using the imported auth instance
         auth.onAuthStateChanged(user => {
             if (user) {
                 this.onLogin();
@@ -308,8 +309,8 @@ export class Auth {
         if (this.authContainer) this.authContainer.style.display = 'block';
         if (this.feedContainer) this.feedContainer.style.display = 'none';
 
-        // Redirect to home if on profile page
-        if (window.location.pathname.includes('profile.html')) {
+        // Only redirect if not on index/login page
+        if (!window.location.pathname.endsWith('index.html')) {
             window.location.href = 'index.html';
         }
     }
