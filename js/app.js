@@ -1086,7 +1086,7 @@ class App {
         replyForm.querySelector('textarea').focus();
     }
 
-    handleQuote(replyForm, post, postId) { // Add postId parameter
+    handleQuote(replyForm, post, postId) {
         if (!auth.currentUser) {
             this.auth.showLoginForm();
             return;
@@ -1124,23 +1124,32 @@ class App {
         overlay.appendChild(modal);
         document.body.appendChild(overlay);
 
-        // Make quoted content clickable
-        const quotedDiv = modal.querySelector('.quoted-content');
-        quotedDiv.addEventListener('click', () => {
-            window.location.href = `post.html?id=${postId}`;
-        });
-
-        // Setup modal functionality
+        // Get all required elements after appending to DOM
+        const quotedDiv = modal.querySelector('.quoted-content-preview');
         const postContent = modal.querySelector('#modalPostContent');
         const submitPost = modal.querySelector('#modalSubmitPost');
         const counterDiv = modal.querySelector('.character-counter');
         const closeBtn = modal.querySelector('.close-btn');
 
+        // Verify all elements exist
+        if (!quotedDiv || !postContent || !submitPost || !counterDiv || !closeBtn) {
+            console.error('Required modal elements not found');
+            overlay.remove();
+            return;
+        }
+
         // Close modal handlers
         const closeModal = () => overlay.remove();
+
+        // Make quoted content clickable
+        quotedDiv.addEventListener('click', () => {
+            window.location.href = `post.html?id=${postId}`;
+        });
+
         overlay.addEventListener('click', (e) => {
             if (e.target === overlay) closeModal();
         });
+
         closeBtn.addEventListener('click', closeModal);
 
         submitPost.addEventListener('click', async () => {
@@ -1167,6 +1176,7 @@ class App {
             counterDiv.textContent = `${length} characters`;
             submitPost.disabled = length === 0;
         };
+        
         postContent.addEventListener('input', updateCharCount);
         updateCharCount();
     }

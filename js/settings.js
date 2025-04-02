@@ -164,9 +164,24 @@ export class Settings {
     loadPreferences() {
         const { postLayout, textSize, reduceMotion } = this.preferences;
         
-        if (postLayout) document.getElementById('postLayout').value = postLayout;
-        if (textSize) document.getElementById('textSize').value = textSize;
-        if (reduceMotion) document.getElementById('reduceMotion').checked = reduceMotion;
+        // Set default values if not set
+        if (!this.preferences.postLayout) {
+            this.preferences.postLayout = 'comfortable';
+        }
+        if (!this.preferences.textSize) {
+            this.preferences.textSize = 'medium';
+        }
+        if (this.preferences.reduceMotion === undefined) {
+            this.preferences.reduceMotion = false;
+        }
+
+        // Update form elements
+        document.getElementById('postLayout').value = this.preferences.postLayout;
+        document.getElementById('textSize').value = this.preferences.textSize;
+        document.getElementById('reduceMotion').checked = this.preferences.reduceMotion;
+
+        // Apply preferences immediately
+        this.applyPreferences();
     }
 
     setupPreferencesListeners() {
@@ -179,16 +194,31 @@ export class Settings {
 
             localStorage.setItem('displayPreferences', JSON.stringify(this.preferences));
             this.applyPreferences();
-            alert('Display preferences saved!');
+            
+            // Show feedback
+            const btn = document.getElementById('saveDisplaySettings');
+            const originalText = btn.textContent;
+            btn.textContent = 'Saved!';
+            btn.disabled = true;
+            
+            setTimeout(() => {
+                btn.textContent = originalText;
+                btn.disabled = false;
+            }, 2000);
         });
     }
 
     applyPreferences() {
         const { postLayout, textSize, reduceMotion } = this.preferences;
-
-        document.documentElement.dataset.postLayout = postLayout || 'comfortable';
-        document.documentElement.dataset.textSize = textSize || 'medium';
-        document.documentElement.dataset.reduceMotion = reduceMotion ? 'true' : 'false';
+        
+        // Apply post layout
+        document.documentElement.setAttribute('data-post-layout', postLayout);
+        
+        // Apply text size
+        document.documentElement.setAttribute('data-text-size', textSize);
+        
+        // Apply motion preferences
+        document.documentElement.setAttribute('data-reduce-motion', reduceMotion ? 'true' : 'false');
     }
 }
 

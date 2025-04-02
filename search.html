@@ -92,40 +92,39 @@
 
     <main class="main-content">
         <div class="search-layout">
-            <div class="search-header glass">
+            <!-- Hero Search Section -->
+            <section class="search-hero glass">
+                <h1>Search Nova Buzz</h1>
+                <p>Find people, posts, and trending topics</p>
                 <div class="search-bar">
                     <div class="search-input-wrapper">
                         <i class="ri-search-line"></i>
-                        <input type="text" 
-                               class="search-input" 
-                               placeholder="Search users, posts, or topics..."
-                               autofocus>
+                        <input type="text" class="search-input" placeholder="Search by @username, #hashtag, or keywords..." autofocus>
                     </div>
                 </div>
-                <div class="search-filters">
-                    <button class="filter-btn active" data-filter="all">
-                        <i class="ri-apps-line"></i> All
-                    </button>
-                    <button class="filter-btn" data-filter="users">
-                        <i class="ri-user-3-line"></i> Users
-                    </button>
-                    <button class="filter-btn" data-filter="posts">
-                        <i class="ri-chat-1-line"></i> Posts
-                    </button>
-                    <button class="filter-btn" data-filter="hashtags">
-                        <i class="ri-hashtag"></i> Hashtags
-                    </button>
-                </div>
-            </div>
+            </section>
 
-            <div class="search-body">
-                <div class="search-main">
-                    <div class="search-results glass">
-                        <!-- Search results will be injected here -->
+            <!-- Filters and Results Section -->
+            <div class="search-container">
+                <div class="search-sidebar">
+                    <div class="search-filters glass">
+                        <h3><i class="ri-filter-3-line"></i> Filters</h3>
+                        <div class="filter-group">
+                            <button class="filter-btn active" data-filter="all">
+                                <i class="ri-apps-line"></i> All
+                            </button>
+                            <button class="filter-btn" data-filter="users">
+                                <i class="ri-user-3-line"></i> Users
+                            </button>
+                            <button class="filter-btn" data-filter="posts">
+                                <i class="ri-chat-1-line"></i> Posts
+                            </button>
+                            <button class="filter-btn" data-filter="hashtags">
+                                <i class="ri-hashtag"></i> Hashtags
+                            </button>
+                        </div>
                     </div>
-                </div>
 
-                <aside class="search-sidebar">
                     <div class="search-tips glass">
                         <h3><i class="ri-lightbulb-line"></i> Search Tips</h3>
                         <ul class="tips-list">
@@ -134,26 +133,37 @@
                             <li><code>"exact phrase"</code> for exact matches</li>
                         </ul>
                     </div>
+                </div>
 
-                    <div class="trending-topics glass">
-                        <h3><i class="ri-hashtag"></i> Trending Topics</h3>
+                <div class="search-content">
+                    <div class="search-results glass">
+                        <!-- Results will be injected here -->
+                        <div class="empty-state">
+                            <i class="ri-search-2-line"></i>
+                            <p>Start typing to search</p>
+                        </div>
+                    </div>
+
+                    <div class="trending-section glass">
+                        <h3><i class="ri-fire-line"></i> Trending Topics</h3>
                         <div class="hashtag-list">
                             <!-- Trending hashtags will be injected here -->
                         </div>
                     </div>
 
                     <div class="recent-searches glass">
-                        <h3><i class="ri-time-line"></i> Recent Searches</h3>
+                        <div class="section-header">
+                            <h3><i class="ri-time-line"></i> Recent Searches</h3>
+                            <button class="clear-history-btn">Clear</button>
+                        </div>
                         <div class="recent-list">
                             <!-- Recent searches will be injected here -->
                         </div>
-                        <button class="clear-history-btn">Clear History</button>
                     </div>
-                </aside>
+                </div>
             </div>
         </div>
     </main>
-
     <footer class="footer glass">
         <div class="footer-content">
             <div class="footer-section">
