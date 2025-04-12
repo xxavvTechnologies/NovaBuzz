@@ -3,94 +3,101 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - Nova Buzz</title>
+    <title>Nova Buzz - Share Your Thoughts</title>
     <link rel="icon" type="image/x-icon" href="https://d2zcpib8duehag.cloudfront.net/Nova%20buzz.png">
     <link rel="stylesheet" href="styles/main.css">
-    <link rel="stylesheet" href="styles/components.css">
     <link rel="stylesheet" href="styles/animations.css">
     <link rel="stylesheet" href="styles/mobile.css">
+    <link rel="stylesheet" href="styles/login.css">
     <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="styles/notifications.css">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 </head>
 <body>
-    <main class="split-layout">
-        <section class="login-section">
-            <div class="login-content glass">
-                <div class="login-header">
+    <div class="login-container">
+        <div class="hero-section">
+            <div class="hero-content">
+                <div class="hero-logo">
                     <i class="ri-flashlight-line"></i>
                     <h1>Nova Buzz</h1>
                 </div>
-                
-                <div class="login-form-container">
-                    <div class="form-group">
-                        <button id="googleSignIn" class="social-login-btn">
-                            <i class="ri-google-fill"></i>
-                            Continue with Google
-                        </button>
-                        <button id="githubSignIn" class="social-login-btn">
-                            <i class="ri-github-fill"></i>
-                            Continue with GitHub
-                        </button>
-                    </div>
-
-                    <div class="divider">or</div>
-
-                    <form id="loginForm" class="login-form">
-                        <div class="form-group">
-                            <label for="email">Email</label>
-                            <input type="email" id="email" class="form-input" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="password">Password</label>
-                            <input type="password" id="password" class="form-input" required>
-                        </div>
-                        <div class="form-group">
-                            <button type="submit" class="form-button">Log In</button>
-                        </div>
-                    </form>
-
-                    <div class="form-footer">
-                        <p>Don't have an account? <a href="#" id="showSignup">Sign up</a></p>
-                        <p><a href="#" id="forgotPassword">Forgot password?</a></p>
-                    </div>
+                <div class="hero-text">
+                    <h2>Join the conversation</h2>
+                    <p>Share your thoughts, connect with others, and be part of something special.</p>
                 </div>
-            </div>
-        </section>
-
-        <section class="showcase-section">
-            <div class="showcase-content">
-                <div class="showcase-slides">
-                    <div class="showcase-slide active" id="slide1">
+                <div class="feature-grid">
+                    <div class="feature-item">
                         <i class="ri-chat-4-line"></i>
-                        <h2>Share Your Voice</h2>
-                        <p>Express yourself in a vibrant community of like-minded individuals.</p>
+                        <h3>Express Yourself</h3>
+                        <p>Share your ideas with a vibrant community</p>
                     </div>
-                    <div class="showcase-slide" id="slide2">
+                    <div class="feature-item">
                         <i class="ri-verified-badge-line"></i>
-                        <h2>Get Verified</h2>
-                        <p>Build your reputation and unlock exclusive features.</p>
+                        <h3>Get Verified</h3>
+                        <p>Build your reputation and unlock perks</p>
                     </div>
-                    <div class="showcase-slide" id="slide3">
+                    <div class="feature-item">
                         <i class="ri-group-line"></i>
-                        <h2>Connect & Engage</h2>
-                        <p>Join discussions, share ideas, and make meaningful connections.</p>
+                        <h3>Connect</h3>
+                        <p>Meet like-minded individuals</p>
                     </div>
-                    <div class="showcase-slide" id="slide4">
+                    <div class="feature-item">
                         <i class="ri-shield-check-line"></i>
-                        <h2>Safe & Secure</h2>
-                        <p>Your privacy and security are our top priorities.</p>
+                        <h3>Stay Safe</h3>
+                        <p>Your privacy is our priority</p>
                     </div>
-                </div>
-                <div class="showcase-nav">
-                    <span class="nav-dot active" data-slide="1"></span>
-                    <span class="nav-dot" data-slide="2"></span>
-                    <span class="nav-dot" data-slide="3"></span>
-                    <span class="nav-dot" data-slide="4"></span>
                 </div>
             </div>
-        </section>
-    </main>
+            <div class="animated-shapes">
+                <div class="shape"></div>
+                <div class="shape"></div>
+                <div class="shape"></div>
+            </div>
+        </div>
+
+        <div class="login-section glass">
+            <div class="login-form-container">
+                <div class="auth-switcher">
+                    <button class="auth-toggle active" data-form="login">Login</button>
+                    <button class="auth-toggle" data-form="signup">Sign Up</button>
+                </div>
+                
+                <div class="social-login">
+                    <button class="social-btn google" id="googleLogin">
+                        <i class="ri-google-fill"></i>
+                        Continue with Google
+                    </button>
+                    <button class="social-btn github" id="githubLogin">
+                        <i class="ri-github-fill"></i>
+                        Continue with GitHub
+                    </button>
+                </div>
+
+                <div class="divider">or continue with email</div>
+
+                <form id="loginForm" class="auth-form">
+                    <div class="form-group floating">
+                        <input type="email" id="email" required>
+                        <label for="email">Email Address</label>
+                    </div>
+                    <div class="form-group floating">
+                        <input type="password" id="password" required>
+                        <label for="password">Password</label>
+                        <button type="button" class="password-toggle">
+                            <i class="ri-eye-off-line"></i>
+                        </button>
+                    </div>
+                    <div class="form-group">
+                        <div class="remember-me">
+                            <input type="checkbox" id="remember">
+                            <label for="remember">Remember me</label>
+                        </div>
+                        <a href="#" id="forgotPassword" class="forgot-link">Forgot password?</a>
+                    </div>
+                    <button type="submit" class="auth-button">Login</button>
+                </form>
+            </div>
+        </div>
+    </div>
 
     <script type="module" src="js/config.js"></script>
     <script type="module" src="js/auth.js"></script>
@@ -98,10 +105,18 @@
         import { Auth } from './js/auth.js';
         import { auth } from './js/config.js';
         
-        // Initialize auth only once
         const authInstance = new Auth();
         
-        // If already logged in, redirect to home
+        // Add social login handlers
+        document.getElementById('googleLogin')?.addEventListener('click', () => {
+            authInstance.googleLogin();
+        });
+        
+        document.getElementById('githubLogin')?.addEventListener('click', () => {
+            authInstance.githubLogin();
+        });
+
+        // Remove duplicate initialization and keep rest of code
         auth.onAuthStateChanged((user) => {
             if (user) {
                 window.location.href = 'home.html';
@@ -131,41 +146,6 @@
         document.getElementById('forgotPassword')?.addEventListener('click', (e) => {
             e.preventDefault();
             authInstance.showResetPasswordForm();
-        });
-    </script>
-    <script>
-        // Add showcase animation code
-        document.addEventListener('DOMContentLoaded', () => {
-            let currentSlide = 1;
-            const totalSlides = 4;
-            
-            function showSlide(slideNum) {
-                document.querySelectorAll('.showcase-slide').forEach(slide => {
-                    slide.classList.remove('active');
-                });
-                document.querySelectorAll('.nav-dot').forEach(dot => {
-                    dot.classList.remove('active');
-                });
-                
-                document.getElementById(`slide${slideNum}`).classList.add('active');
-                document.querySelector(`[data-slide="${slideNum}"]`).classList.add('active');
-            }
-
-            function nextSlide() {
-                currentSlide = currentSlide % totalSlides + 1;
-                showSlide(currentSlide);
-            }
-
-            // Auto advance slides
-            setInterval(nextSlide, 5000);
-
-            // Click navigation
-            document.querySelectorAll('.nav-dot').forEach(dot => {
-                dot.addEventListener('click', () => {
-                    currentSlide = parseInt(dot.dataset.slide);
-                    showSlide(currentSlide);
-                });
-            });
         });
     </script>
 </body>

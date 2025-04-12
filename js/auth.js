@@ -1,5 +1,12 @@
 import { auth, db } from './config.js';
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from 'https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js';
+import { 
+    signInWithEmailAndPassword, 
+    createUserWithEmailAndPassword, 
+    signOut,
+    GoogleAuthProvider,
+    GithubAuthProvider,
+    signInWithPopup
+} from 'https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js';
 import { doc, setDoc, serverTimestamp, getDoc, collection, query, where, getDocs } from 'https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js';
 import { checkContent } from './utils.js';
 
@@ -8,6 +15,8 @@ export class Auth {
         this.initializeElements();
         this.setupAuthListeners();
         this.setupAuthStateObserver();
+        this.googleProvider = new GoogleAuthProvider();
+        this.githubProvider = new GithubAuthProvider();
     }
 
     initializeElements() {
@@ -158,7 +167,7 @@ export class Auth {
         }
     }
 
-    async createUserProfile(userId, username, email) {
+    async createUserProfile(userId, username, email, additionalData = {}) {
         const userRef = doc(db, 'users', userId);
         await setDoc(userRef, {
             username,
@@ -170,7 +179,8 @@ export class Auth {
                 emailNotifications: true,
                 publicProfile: true,
                 showOnline: true
-            }
+            },
+            ...additionalData
         });
     }
 
@@ -216,6 +226,62 @@ export class Auth {
             alert(errorMessage);
             throw error;
         }
+    }
+
+    async handleSocialLogin(provider) {
+        try {
+            const result = await signInWithPopup(auth, provider);
+            const user = result.user;
+
+            // Check if user profile exists
+            const userDoc = await getDoc(doc(db, 'users', user.uid));
+            
+            if (!userDoc.exists()) {
+                // Create new profile for social login users
+                let username = user.displayName?.replace(/\s+/g, '') || `user${Math.random().toString(36).slice(2, 8)}`;
+                
+                // Ensure username is unique
+                let isUnique = false;
+                let counter = 1;
+                
+                while (!isUnique) {
+                    try {
+                        await this.validateUsername(username);
+                        isUnique = true;
+                    } catch (error) {
+                        username = `${username}${counter}`;
+                        counter++;
+                    }
+                }
+
+                await this.createUserProfile(user.uid, username, user.email, {
+                    profilePicUrl: user.photoURL,
+                    provider: provider.providerId
+                });
+            }
+
+            // Remove any existing auth modals
+            document.querySelectorAll('.modal-overlay').forEach(modal => modal.remove());
+
+        } catch (error) {
+            console.error('Social login error:', error);
+            let errorMessage = 'Failed to login. Please try again.';
+            
+            if (error.code === 'auth/account-exists-with-different-credential') {
+                errorMessage = 'An account already exists with this email using a different login method.';
+            }
+            
+            alert(errorMessage);
+            throw error;
+        }
+    }
+
+    async googleLogin() {
+        return this.handleSocialLogin(this.googleProvider);
+    }
+
+    async githubLogin() {
+        return this.handleSocialLogin(this.githubProvider);
     }
 
     showUsernamePrompt() {

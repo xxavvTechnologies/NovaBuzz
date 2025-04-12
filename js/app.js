@@ -758,7 +758,12 @@ class App {
             img.decoding = 'async';
         }
 
-        this.postsContainer.insertBefore(postElement, this.postsContainer.firstChild);
+        // Change from insertBefore to appendChild to show newest posts first
+        if (this.postsContainer.firstChild) {
+            this.postsContainer.insertBefore(postElement, this.postsContainer.firstChild);
+        } else {
+            this.postsContainer.appendChild(postElement);
+        }
     }
 
     async createPostElement(post, postId) {
